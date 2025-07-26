@@ -193,15 +193,18 @@ const robotModelMap = {'jaka_zu_5': jaka_zu_5_Model,
                        'agilex_piper': agilex_piper_Model};
 
 const Select_Robot = (props)=>{
-  const {robotNameList, robotName, ...rotateProps} = props;
+  const {updateRobot, robotNameList, robotName, ...rotateProps} = props;
   const visibletable = robotNameList.map(()=>false);
   const findindex = robotNameList.findIndex((e)=>e===robotName);
   if(findindex >= 0){
     visibletable[findindex] = true;
   }
-  let Model = robotModelMap[robotName];
+  const Model = React.useRef(robotModelMap[robotName]);
+  React.useEffect(() => {
+    Model.current = robotModelMap[robotName];
+  }, [updateRobot]);
   return (<>
-    <Model visible={visibletable[0]} {...rotateProps}/>
+    <Model.current visible={visibletable[0]} {...rotateProps}/>
   </>);
 }
 

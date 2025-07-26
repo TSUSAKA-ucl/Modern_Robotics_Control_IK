@@ -18,7 +18,7 @@ const Line = (props) => {
 
 export default function RobotScene(props) {
   const {
-    robot_model, rendered, robotProps, controllerProps,
+    robot_model, rendered, updateRobot, robotProps, controllerProps,
     theta_tool,
     dsp_message, dsp_color,
     c_pos_x, c_pos_y, c_pos_z, c_deg_x, c_deg_y, c_deg_z, 

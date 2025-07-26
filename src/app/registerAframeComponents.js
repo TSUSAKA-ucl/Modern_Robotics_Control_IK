@@ -49,7 +49,8 @@ export default function registerAframeComponents(options) {
     tick: function () {
       if (this.el.object3D) {
 	const baseTworld = this.el.object3D.matrixWorld.clone().invert();
-	if (!baseTworld.equals(baseLinkPoseInv.current)) {
+	if (typeof baseTworld === 'THREE.Matrix4' &&
+	    !baseTworld.equals(baseLinkPoseInv.current)) {
 	  baseLinkPoseInv.current = baseTworld;
 	  console.debug('baseLinkPoseInv: ', baseLinkPoseInv.current.elements[0].toFixed(3), ', ',
 			baseLinkPoseInv.current.elements[1].toFixed(3), ', ',

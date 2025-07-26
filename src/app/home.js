@@ -35,9 +35,9 @@ export default function DynamicHome(props) {
 
   // initilize Modern Robotics parameters
   // Load Robot Model
-  const [robot_model] = React.useState(robotName); // Change this to your robot model
-  const [toolLimit] = React.useState({ min: -1, max: 89 });
+  const [robot_model, set_robot_model] = React.useState(robotName); // Change this to your robot model
 
+  const [toolLimit] = React.useState({ min: -1, max: 89 });
 
   const vrModeRef = React.useRef(false); 
   const [trigger_on,set_trigger_on] = React.useState(false)
@@ -60,23 +60,12 @@ export default function DynamicHome(props) {
   const [c_deg_y,set_c_deg_y] = React.useState(150)
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
-  const [dsp_message,set_dsp_message] = React.useState("XXX")
-
-  const green_color = 'lime';
-  const red_color = 'red';
-  const dsp_color = React.useRef(green_color); // Default color for DSP message
-
   // Robot Tool
   const toolNameList = ["No tool"]
   const [toolName,set_toolName] = React.useState(toolNameList[0])
 
   // Frame ID
   const reqIdRef = React.useRef()
-  // The pose of the end link
-  const endLinkPose = React.useRef(new THREE.Matrix4());
-  const endLinkPoseStart = React.useRef(null);
-  const baseLinkPoseInv = React.useRef(null);
-  const controllerStartInv = React.useRef(null);
   // Animation loop
   const loop = (timestamp)=>{
     reqIdRef.current = window.requestAnimationFrame(loop) 
@@ -85,7 +74,61 @@ export default function DynamicHome(props) {
     loop()
     return () => window.cancelAnimationFrame(reqIdRef.current) 
   },[])
+
+  // The pose of the end link
+  const endLinkPose = React.useRef(new THREE.Matrix4());
+  const endLinkPoseStart = React.useRef(null);
+  const baseLinkPoseInv = React.useRef(null);
+  const controllerStartInv = React.useRef(null);
+  React.useEffect(()=>{
+    // endLinkPose.current =
+    endLinkPoseStart.current = null;
+    baseLinkPoseInv.current = null;
+    controllerStartInv.current = null;
+  }, [robot_model]);
+
+  // *** Robot initial joint angles ***
+  const j2UrdfZero = 1.46984632679; // Pi/2.0 - 0.10095
+  const j3UrdfZero = -2.95319327649; // - (Pi/2 - 0.10095) - Pi/2 + ArcTan[0.25075,0.021984]
+  function piperMr2urdf(udJoints) {
+    const mr = [...udJoints];
+    mr[1] += j2UrdfZero;
+    mr[2] += j3UrdfZero;
+    return mr;
+  }
+  const theta_body_initial_map = {
+    'jaka_zu_5': [0,110,90,70,-90,90].map(x=>x*Math.PI/180),
+    'agilex_piper': piperMr2urdf([0, -15, 82.6, 0, 70, 0].map(x=>x*Math.PI/180)),
+  };
+  const [theta_body, setThetaBody] = React.useState(()=>{
+    // Initial joint and tool angles
+    // const theta_body_initial = [0, 0, 0, 0, 0, 0].map(x=>x*Math.PI/180);
+    // const theta_body_initial = [180, 90, 0, 90, 180, 0].map(x=>x*Math.PI/180);
+    // **** piper
+    // const theta_body_initial = [0, -15, 82.6, 0, 70, 0].map(x=>x*Math.PI/180);
+    // **** jaka_zu_5 initial angles
+    // // jaka_zu_5 joint ZERO pose in urdf
+    // const theta_body_initial = [180, -90, 0, -90, 0, 0].map(x=>x*Math.PI/180);
+    // // jaka_zu_5 near urdf ZERO
+    // const theta_body_initial = [180, -60, -30, -70, 30, 0].map(x=>x*Math.PI/180);
+    return theta_body_initial_map[robot_model] || [0, 0, 0, 0, 0, 0];
+  });
+  const [theta_tool, setThetaTool] = React.useState(()=>{
+    const theta_tool_inital = 0;
+    return theta_tool_inital});
+  React.useEffect(() => {
+    setThetaBody(theta_body_initial_map[robot_model] || [0, 0, 0, 0, 0, 0]);
+    console.log('set ini-val: theta_body:'+ theta_body.map(x=>(x/Math.PI*180).toFixed(1)).join(', '));
+    setThetaTool(0);
+    setUpdateRobot(updateRobot+1);
+  }, [robot_model]);
+
   // Worker thread generation
+  const [updateRobot, setUpdateRobot] = React.useState(0)
+  const [dsp_message,set_dsp_message] = React.useState("XXX")
+  const green_color = 'lime';
+  const red_color = 'red';
+  const dsp_color = React.useRef(green_color); // Default color for DSP message
   const workerRef = React.useRef(null);
   const workerLastJoints = React.useRef(null);
   const workerLastStatus = React.useRef(null);
@@ -153,7 +196,7 @@ export default function DynamicHome(props) {
       }
       clearInterval(intervalId);
     };
-  }, []);
+  }, [updateRobot]);
 
   // Change Robot
   const robotChange = ()=>{
@@ -165,37 +208,9 @@ export default function DynamicHome(props) {
       return robotNameList[changeIdx]
     }
     set_robotName(get)
+    set_robot_model(get)
   }
 
-  /*** Robot Controller ***/
-  const [theta_body, setThetaBody] = React.useState(()=>{
-    // Initial joint and tool angles
-    // const theta_body_initial = [0, 0, 0, 0, 0, 0].map(x=>x*Math.PI/180);
-    // const theta_body_initial = [180, 90, 0, 90, 180, 0].map(x=>x*Math.PI/180);
-    // **** piper
-    // const theta_body_initial = [0, -15, 82.6, 0, 70, 0].map(x=>x*Math.PI/180);
-    // **** jaka_zu_5 initial angles
-    // // jaka_zu_5 joint ZERO pose in urdf
-    // const theta_body_initial = [180, -90, 0, -90, 0, 0].map(x=>x*Math.PI/180);
-    // // jaka_zu_5 near urdf ZERO
-    // const theta_body_initial = [180, -60, -30, -70, 30, 0].map(x=>x*Math.PI/180);
-    const j2UrdfZero = 1.46984632679; // Pi/2.0 - 0.10095
-    const j3UrdfZero = -2.95319327649; // - (Pi/2 - 0.10095) - Pi/2 + ArcTan[0.25075,0.021984]
-    function piperMr2urdf(udJoints) {
-      const mr = [...udJoints];
-      mr[1] += j2UrdfZero;
-      mr[2] += j3UrdfZero;
-      return mr;
-    }
-    const theta_body_initial_map = {
-      'jaka_zu_5': [0,110,90,70,-90,90].map(x=>x*Math.PI/180),
-      'agilex_piper': piperMr2urdf([0, -15, 82.6, 0, 70, 0].map(x=>x*Math.PI/180)),
-    };
-    return theta_body_initial_map[robot_model] || [0, 0, 0, 0, 0, 0].map(x=>x*Math.PI/180);
-  });
-  const [theta_tool, setThetaTool] = React.useState(()=>{
-    const theta_tool_inital = 0;
-    return theta_tool_inital});
 
   // Theta guess for Newton's method in inverse kinematics
   // const [theta_body_guess, setThetaBodyGuess] = React.useState(theta_body);
@@ -203,6 +218,7 @@ export default function DynamicHome(props) {
   const controllerMagnification = React.useRef(1.0);
   const controllerMagnificationPrev = React.useRef(controllerMagnification.current);
   const controllerMagnificationUsed = React.useRef(controllerMagnification.current);
+
   React.useEffect(() => {
     // VR input period
     if (endLinkPoseStart.current !== null &&
@@ -427,8 +443,8 @@ export default function DynamicHome(props) {
 
   // Robot State Update Props
   const robotProps = React.useMemo(() => ({
-    robotNameList, robotName, theta_body, theta_tool
-  }), [robotNameList, robotName, theta_body, theta_tool]);
+    updateRobot, robotNameList, robotName, theta_body, theta_tool
+  }), [updateRobot, robotNameList, robotName, theta_body, theta_tool]);
   
   // Robot Secene Render
   return (
