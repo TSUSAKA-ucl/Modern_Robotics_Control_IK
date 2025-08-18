@@ -176,8 +176,9 @@ export default function DynamicHome(props) {
 	switch (event.data.type) {
 	case 'ready':
 	  workerRef.current
-	    .postMessage({ type: 'init', filename: robot_model
-			   +'/'+'urdf.json' //robot_model,
+	    .postMessage({ type: 'init',
+			   filename: robot_model +'/'+'urdf.json', //robot_model
+			   linkShapes: robot_model +'/'+'shapes.json'
 			 });
 	  break;
 	case 'generator_ready':
@@ -341,7 +342,7 @@ export default function DynamicHome(props) {
       // }
     }
     // ** update the controller and end link pose at the trigger_on change
-    console.log("controllerUpdate: ", controllerUpdate);
+    console.debug("controllerUpdate: ", controllerUpdate);
     let updateStartPose = false;
     if (baseLinkPoseInv.current !== null) {
       if (!trigger_on) {

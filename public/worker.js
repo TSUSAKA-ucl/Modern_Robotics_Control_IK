@@ -22,6 +22,7 @@ let subState = sst.dormant;  // slrm & jointRewinder state
 console.log('Now intended to import ModuleFactory');
 // import ModuleFactory from '/wasm/slrm_module.js';
 const ModuleFactory = await import('/wasm/slrm_module.js');
+const CdModuleFactory = await import('/wasm/cd_module.js');
 console.log('ModuleFactory: ', ModuleFactory);
 console.log('ModuleFactory.default type:', typeof ModuleFactory.default);
 if (typeof ModuleFactory.default !== 'function') {
@@ -32,6 +33,11 @@ const SlrmModule = await ModuleFactory.default();
 if (!SlrmModule) {
   console.error('Failed to load SlrmModule');
   throw new Error('SlrmModule could not be loaded');
+}
+const CdModule = await CdModuleFactory.default();
+if (!CdModule) {
+  console.error('Failed to load CdModule');
+  throw new Error('CdModule could not be loaded');
 }
 const statusName = {
   [SlrmModule.CmdVelGeneratorStatus.OK.value]: 'OK',
@@ -55,7 +61,9 @@ let logPrevJoints = null; // ログ出力用の前回ジョイントポジショ
 const jointUpperLimits = [];
 const jointLowerLimits = [];
 let cmdVelGen = null; // コマンド速度生成器WASMオブジェクト
+let gjkCd = null; // collision detection WASMオブジェクト
 let makeDoubleVectorG = null; // helper function for DoubleVector
+let makeCdDoubleVectorG = null;
 // let newDestinationFlag = false; // 新しいdestinationが来たかどうか
 let exactSolution = false; // singularity通過のための設定
 
@@ -69,26 +77,80 @@ function createHelpers(module) {
     }
     return vec;
   }
-  function makeJointModelVector(jsArray) {
-    const vec = new module.JointModelFlatStructVector();
+  // 他のヘルパー関数もここに追加できる
+  return {
+    makeDoubleVector,
+    // ... more helpers
+  };
+}
+// CdModuleを閉じ込めて、その関連オブジェクトを生成するhelper関数群
+function createCdHelpers(module) {
+  function makeCdDoubleVector(jsArray) {
+    const vec = new module.DoubleVector();
     for (let i = 0; i < jsArray.length; ++i) {
       vec.push_back(jsArray[i]);
     }
     return vec;
   }
-  // 他のヘルパー関数もここに追加できる
-  // }
-
+  function makeConvexShape(xyzArray) {
+    // console.log("module", module);
+    const vec = new module.ConvexShape();
+    for (let i = 0; i < xyzArray.length; ++i) {
+      const xyz = xyzArray[i];
+      vec.push_back({x: xyz[0], y: xyz[1], z: xyz[2]});
+    }
+    return vec;
+  }
   // 他にも必要な関数を追加できる
   return {
-    makeDoubleVector,
-    makeJointModelVector,
-    // ... more helpers
+    makeCdDoubleVector,
+    makeConvexShape,
   };
 }
 
+
 let socket = null; // WebSocketオブジェクト
 let shutdownFlag = false; // workerの終了フラグ
+
+function createJointModel(mod, list) {
+  // 各行をJointModelFlatStructに変換
+  function modDoubleVector(mod, jsArray) {
+    const vec = new mod.DoubleVector();
+    for (let i = 0; i < jsArray.length; ++i) {
+      vec.push_back(jsArray[i]);
+    }
+    return vec;
+  }
+  function modJointModelVector(mod, jmArray) {
+    const vec = new mod.JointModelFlatStructVector();
+    for (let i = 0; i < jmArray.length; ++i) {
+      vec.push_back(jmArray[i]);
+    }
+    return vec;
+  }
+
+  const jointModelsArray = list.map(obj => {
+    const xyz_in = obj.origin.$.xyz ?? [NaN, NaN, NaN];
+    const xyz = modDoubleVector(mod,
+				Array.isArray(xyz_in) && xyz_in.length === 3
+				? xyz_in : [NaN, NaN, NaN]);
+    const rpy_in = obj.origin.$.rpy ?? [NaN, NaN, NaN];
+    const rpy = modDoubleVector(mod,
+				Array.isArray(rpy_in) && rpy_in.length === 3
+				? rpy_in : [NaN, NaN, NaN]);
+    const axis_in = obj.axis.$.xyz ?? [NaN, NaN, NaN];
+    const axis = modDoubleVector(mod,
+				 Array.isArray(axis_in) && axis_in.length === 3
+				 ? axis_in : [NaN, NaN, NaN]);
+    const jointModel = new mod.JointModelFlatStruct(axis, xyz, rpy);
+    axis.delete();
+    xyz.delete();
+    rpy.delete();
+    return jointModel;
+  });
+  const jointModelVector = modJointModelVector(mod,jointModelsArray);
+  return { jointModelVector, jointModelsArray }
+}
 
 // ******** worker message handler ********
 console.log('now setting onmessage')
@@ -113,35 +175,23 @@ self.onmessage = function(event) {
     workerState = st.generatorMaking;
     console.log('constructing CmdVelGenerator with :', data.filename);
     // 初期化処理
-    const { makeDoubleVector, makeJointModelVector } = createHelpers(SlrmModule);
+    const { makeDoubleVector } = createHelpers(SlrmModule);
+    const { makeCdDoubleVector, makeConvexShape } = createCdHelpers(CdModule);
     makeDoubleVectorG = makeDoubleVector; // グローバルにヘルパー関数を保存
+    makeCdDoubleVectorG = makeCdDoubleVector; // グローバルにヘルパー関数を保存
     SlrmModule.setJsLogLevel(3); // 3: info level, 4: debug level
     fetch(data.filename)
       .then(response => response.json())
       .then(jsonData => {
 	const revolutes = jsonData.filter(obj => obj.$.type === 'revolute');
-	// 各行をJointModelFlatStructに変換
-	const jointModels = revolutes.map(obj => {
-	  const xyz_in = obj.origin.$.xyz ?? [NaN, NaN, NaN];
-	  const xyz = makeDoubleVector(Array.isArray(xyz_in) && xyz_in.length === 3
-				       ? xyz_in : [NaN, NaN, NaN]);
-	  const rpy_in = obj.origin.$.rpy ?? [NaN, NaN, NaN];
-	  const rpy = makeDoubleVector(Array.isArray(rpy_in) && rpy_in.length === 3
-				       ? rpy_in : [NaN, NaN, NaN]);
-	  const axis_in = obj.axis.$.xyz ?? [NaN, NaN, NaN];
-	  const axis = makeDoubleVector(Array.isArray(axis_in) && axis_in.length === 3
-					? axis_in : [NaN, NaN, NaN]);
-	  const jointModel = new SlrmModule.JointModelFlatStruct(axis, xyz, rpy);
-	  axis.delete();
-	  xyz.delete();
-	  rpy.delete();
-	  return jointModel;
-	});
-	const jointModelVector = makeJointModelVector(jointModels);
+	const {jointModelVector,
+	       jointModelsArray} = createJointModel(SlrmModule, revolutes);
 	console.log('type of SlrmModule.CmdVelGen: '
 		    + typeof SlrmModule.CmdVelGenerator);
 	cmdVelGen = new SlrmModule.CmdVelGenerator(jointModelVector);
-	jointModels.forEach(model => model.delete());
+	console.log("type of jointModels is ", typeof jointModels);
+	jointModelsArray.forEach(model => model.delete());
+	jointModelVector.delete();
 	if (cmdVelGen === null || cmdVelGen === undefined) {
 	  console.error('generation of CmdVelGen instance failed');
 	  cmdVelGen = null;
@@ -169,12 +219,65 @@ self.onmessage = function(event) {
 	  = makeDoubleVector(Array(revolutes.length).fill(Math.PI*2.0)); // 2.0Pi/s // 20Pi rad/s
 	cmdVelGen.setJointVelocityLimit(jointVelocityLimit); // ジョイント速度制限を設定
 	jointVelocityLimit.delete();
+
+	if (data.linkShapes) {
+	  const {jointModelVector,
+		 jointModelsArray} = createJointModel(CdModule, revolutes);
+	  const basePosition = makeCdDoubleVector([0.0, 0.0, 0.0]);
+	  const baseOrientation = makeCdDoubleVector([1.0, 0.0, 0.0, 0.0]);
+	  gjkCd = new CdModule.CollisionDetection(jointModelVector,
+						  basePosition,
+						  baseOrientation);
+	  // jointModels.forEach(model => model.delete());
+	  jointModelVector.delete();
+	  jointModelsArray.forEach(model => model.delete());
+	  basePosition.delete();
+	  baseOrientation.delete();
+	}
+	if (gjkCd) {
+	  fetch(data.linkShapes)
+	    .then(response => response.json())
+	    .then(linkShapes => {
+	      if (linkShapes.length !== revolutes.length + 2) { // +2はbaseとend_effectorの分
+		console.error('リンク形状定義の数がリンクモデルの数(+2)と一致しません。');
+		return;
+	      }
+	      console.log('linkShapes.length: ', linkShapes.length);
+	      for (let i = 0; i < linkShapes.length; ++i) {
+		console.log(`リンク番号${i} のvector生成`);
+		const shapeWasm = new CdModule.ConvexShapeVector();
+		for (const convex of linkShapes[i]) {
+		  const convexWasm = makeConvexShape(convex);
+		  console.log('size of convex js: ', convex.length);
+		  shapeWasm.push_back(convexWasm);
+		  convexWasm.delete();
+		}
+		gjkCd.addLinkShape(i, shapeWasm);
+		shapeWasm.delete();
+	      }
+	      console.log('setting up of link shapes is finished');
+	      gjkCd.infoLinkShapes();
+	      const testPairs = [[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],
+				 [1,3],[1,4],[1,5],[1,6],[1,7],
+				 [2,4],[2,5],[2,6],[2,7],
+				 [3,5],[3,6],[3,7]
+				];
+	      gjkCd.clearTestPairs();
+	      for (const pair of testPairs) {
+		gjkCd.addTestPair(pair[0],pair[1]);
+	      }
+	    })
+	    .catch(error => {
+	      console.error('Error fetching or parsing SHAPE file:', error);
+	    });
+	}
+
 	// なにかの加減でオブジェクト生成に失敗した場合はここでエラーがthrownされる
 	workerState = st.generatorReady;
 	self.postMessage({type: 'generator_ready'});
       })
       .catch(error => {
-	console.error('Error fetching or parsing JSON file:', error);
+	console.error('Error fetching or parsing URDF.JSON file:', error);
       });
   } break;
   case 'set_initial_joints': if (workerState === st.generatorReady ||
@@ -200,7 +303,7 @@ self.onmessage = function(event) {
 	  }
 	});
       }
-      jointRewinder.map((der,ix)=>{der.reset(); der.setX0(initialJoints[ix])});
+      jointRewinder.forEach((der,ix)=>{der.reset(); der.setX0(initialJoints[ix])});
       workerState = st.slrmReady;
       controllerTfVec = []; // 現在値をゴールにしてcalcVelocityPQを1回実行する
       subState = sst.moving; // 目標位置に移動中
@@ -343,6 +446,15 @@ function mainFunc(timeStep) {
 	prevJoints.set(joints);
 	for (let i=0; i<joints.length; i++) {
 	  joints[i] = joints[i] + velocities[i]* timeStep;
+	}
+	if (gjkCd) {
+	  const jointPositions = makeCdDoubleVectorG(joints);
+	  gjkCd.calcFk(jointPositions);
+	  jointPositions.delete();
+	  const resultPairs = gjkCd.testCollisionPairs();
+	  if (resultPairs.size() !== 0) {
+	    joints.set(prevJoints);
+	  }
 	}
 	break;
       case SlrmModule.CmdVelGeneratorStatus.END.value:
