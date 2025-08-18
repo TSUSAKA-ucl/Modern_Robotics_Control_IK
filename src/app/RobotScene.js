@@ -13,7 +13,7 @@ const Line = (props) => {
       line={line_para}
       position={`0 0 0`}
       visible={`${visible}`}
-  ></a-entity>
+    ></a-entity>
 }
 
 export default function RobotScene(props) {
@@ -22,12 +22,9 @@ export default function RobotScene(props) {
     theta_tool,
     dsp_message, dsp_color,
     c_pos_x, c_pos_y, c_pos_z, c_deg_x, c_deg_y, c_deg_z, 
-    // position_ee, euler_ee, 
-    // vr_controller_pos, vr_controller_euler,
   } = props;
 
   const rad2deg = rad => rad * 180 / Math.PI;
-  // const euler_ee_deg = euler_ee.map(rad2deg);
 
   if (!rendered) {
     return (
@@ -107,27 +104,6 @@ export default function RobotScene(props) {
             />
           </a-camera>
         </a-entity>
-          {/* VR Controller Pose */}
-          {/* <a-square 
-            position={`${vr_controller_pos[0]} ${vr_controller_pos[1]} ${vr_controller_pos[2]}`} 
-            rotation={`${vr_controller_euler[0]} ${vr_controller_euler[1]} ${vr_controller_euler[2]}`}
-            color="green" 
-            visible={true}>
-          </a-square>
-          <a-entity
-            position={`${vr_controller_pos[0]} ${vr_controller_pos[1]} ${vr_controller_pos[2]}`} 
-            rotation={`${vr_controller_euler[0]} ${vr_controller_euler[1]} ${vr_controller_euler[2]}`}
-          >
-            <a-cylinder position="0 0 -0.015" rotation="90 0 0" height="0.0250" radius="0.0015" color="red" />
-            <a-cylinder position="-0.015 0 0" rotation="0 0 90" height="0.0250" radius="0.0015" color="green" />
-            <a-cylinder position="0 0.025 0" rotation="0 90 0" height="0.0550" radius="0.0015" color="green" />
-          </a-entity> */}
-
-
-          {/* World Space */}
-          {/* <Line pos1={{x:0,y:0,z:0}} pos2={{x:0,y:0,z:0.2}} color="blue" visible={true} /> 
-          <Line pos1={{x:0,y:0,z:0}} pos2={{x:0.2,y:0,z:0}} color="red" visible={true} />   
-          <Line pos1={{x:0,y:0,z:0}} pos2={{x:0,y:0.2,z:0}}  color="green" visible={true} />  */}
          
         {/* End Link */}
         {end_link}

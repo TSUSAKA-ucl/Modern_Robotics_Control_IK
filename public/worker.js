@@ -87,10 +87,28 @@ function createHelpers(module) {
   };
 }
 
+let socket = null; // WebSocketオブジェクト
+let shutdownFlag = false; // workerの終了フラグ
+
 // ******** worker message handler ********
+console.log('now setting onmessage')
 self.onmessage = function(event) {
   const data = event.data;
   switch (data.type) {
+  case 'shutdown': // workerを終了する
+    if (socket) {
+      socket.close();
+      socket = null;
+    }
+    if (SlrmModule) {
+      SlrmModule.delete(); // WASMモジュールを解放
+    }
+    self.postMessage({type: 'shutdown_complete'});
+    shutdownFlag = true; // workerを終了するフラグを立てる
+    break;
+  case 'wsURL': // WebSocket URLを受け取ったとき
+    socket = new WebSocket(data.wsURL);
+    break;
   case 'init': if (workerState === st.waitingRobotType) {
     workerState = st.generatorMaking;
     console.log('constructing CmdVelGenerator with :', data.filename);
@@ -405,6 +423,12 @@ function mainLoop(prevTime = performance.now()-timeInterval) {
   const now = performance.now();
   const deltaTime = now - prevTime;
   mainFunc(deltaTime / 1000); // time step in seconds
+  if (shutdownFlag === true) {
+    self.postMessage({type: 'shutdown_complete'});
+    console.log('main loop was finished')
+    self.close()
+    return
+  }
   setTimeout(() => mainLoop(now), 0); // 次のループをスケジュール
 }
 
@@ -412,3 +436,4 @@ function mainLoop(prevTime = performance.now()-timeInterval) {
 workerState = st.waitingRobotType;
 self.postMessage({type: 'ready'});
 mainLoop(); // メインループを開始
+// event loop

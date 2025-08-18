@@ -26,7 +26,6 @@ export default function registerAframeComponents(options) {
     set_c_deg_x, set_c_deg_y, set_c_deg_z,
     vrModeRef,
     // controller_object,
-    // Euler_order,
     props,
     onXRFrameMQTT,
     workerLastJoints,
@@ -76,7 +75,6 @@ export default function registerAframeComponents(options) {
     schema: { type: 'string', default: '' },
     init: function () {
       // set_controller_object(this.el.object3D.MatrixWorld);
-      // this.el.object3D.rotation.order = Euler_order;
       // Trigger 
       this.el.addEventListener('triggerdown', () => set_trigger_on(true));
       this.el.addEventListener('triggerup', () => set_trigger_on(false));

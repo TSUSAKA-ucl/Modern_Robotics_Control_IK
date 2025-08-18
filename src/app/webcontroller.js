@@ -8,11 +8,6 @@ export default function Controller(props) {
   const {vr_mode} = props
   const {theta_body} = props
   const {theta_tool} = props
-  // const {pose_ee} = props
-  // // const {position_ee} = props
-  // // const {euler_ee} = props
-  // const position_ee = pose_ee.position;
-  // const euler_ee = pose_ee.euler;
 
   const set_c_pos_x = (e)=>{
     let value = Number.parseFloat(e.target.value || 0)
@@ -142,60 +137,6 @@ export default function Controller(props) {
           </div>
         </div>
       </div> 
-      {/*
-      <span>Modern_Robot_Controll</span>
-      <div className="IK controller"></div>
-      <div className="modern-robot-controll-panel row">
-        <div hidden> Position </div>
-        <div className="col-md-6">
-          <div className="mb-2 fw-bold">Position (cm)</div>
-          {['X', 'Y', 'Z'].map((label, idx) => (
-            <div className="mb-2" key={label}>
-              <label className="form-label">{label}</label>
-              <input
-                type="number"
-                className="form-control"
-                value={position_ee[idx].toFixed(5)}
-                // readOnly
-                onChange={e => {
-                  const value = Number.parseFloat(e.target.value || 0);
-                  const newPos = [...position_ee];
-                  newPos[idx] = value;
-                  props.setPositionEE(newPos);
-                  props.onTargetChange(newPos, props.euler_ee);
-                }}
-                step = {0.01}                   
-              />
-            </div>
-          ))}
-        </div>
-
-        <div hidden>  Euler </div>
-        <div className="col-md-6">
-          <div className="mb-2 fw-bold">Euler (rad)</div>
-          {['z_hat', 'y_hat', 'x_hat'].map((label, idx) => (
-            <div className="mb-2" key={label}>
-              <label className="form-label">{label}</label>
-              <input
-                type="number"
-                className="form-control"
-                value={euler_ee[idx].toFixed(5)}
-                // readOnly
-                onChange={e => {
-                  const value = Number.parseFloat(e.target.value || 0);
-                  const newEuler = [...euler_ee];
-                  newEuler[idx] = value;
-                  // props.setEulerXYZ(newEuler);
-                  props.setEuler(newEuler);
-                  props.onTargetChange(props.position_ee, newEuler);
-                }}
-                step = {0.02}
-              />
-            </div>
-          ))}
-        </div>
-      </div>  
-       */}
     </>
   )
 }
