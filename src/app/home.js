@@ -175,10 +175,13 @@ export default function DynamicHome(props) {
       workerRef.current.onmessage = (event) => {
 	switch (event.data.type) {
 	case 'ready':
+	  const bridgeProtocol = location.protocol==='https:' ? 'wss:':'ws:';
+	  const bridgePort = 9090;
 	  workerRef.current
 	    .postMessage({ type: 'init',
-			   filename: robot_model +'/'+'urdf.json', //robot_model
-			   linkShapes: robot_model +'/'+'shapes.json'
+			   filename: robot_model +'/'+'urdf.json',
+			   linkShapes: robot_model +'/'+'shapes.json',
+			   bridgeUrl: `${bridgeProtocol}//${location.hostname}:${bridgePort}`,
 			 });
 	  break;
 	case 'generator_ready':
