@@ -1,4 +1,4 @@
-class W {
+class q {
   constructor(e, t, i, n) {
     this.g1 = e, this.a1 = t, this.v1 = i, this.a2 = n, this.constrained = !1, this.x0 = 0;
   }
@@ -46,7 +46,7 @@ class W {
     this.constrained = !1;
   }
 }
-function Z(s) {
+function ie(s) {
   const e = s.length;
   let t = 0, i = 0;
   for (; i < e; ) {
@@ -68,7 +68,7 @@ function Z(s) {
   }
   return t;
 }
-function j(s, e, t) {
+function ne(s, e, t) {
   const i = s.length;
   let n = t, r = 0;
   for (; r < i; ) {
@@ -90,46 +90,46 @@ function j(s, e, t) {
     e[n++] = o & 63 | 128;
   }
 }
-const ee = new TextEncoder(), te = 50;
-function ie(s, e, t) {
-  ee.encodeInto(s, e.subarray(t));
+const se = new TextEncoder(), oe = 50;
+function re(s, e, t) {
+  se.encodeInto(s, e.subarray(t));
 }
-function ne(s, e, t) {
-  s.length > te ? ie(s, e, t) : j(s, e, t);
+function le(s, e, t) {
+  s.length > oe ? re(s, e, t) : ne(s, e, t);
 }
 new TextDecoder();
-class F {
+class k {
   constructor(e, t) {
     this.type = e, this.data = t;
   }
 }
-class k extends Error {
+class R extends Error {
   constructor(e) {
     super(e);
-    const t = Object.create(k.prototype);
+    const t = Object.create(R.prototype);
     Object.setPrototypeOf(this, t), Object.defineProperty(this, "name", {
       configurable: !0,
       enumerable: !1,
-      value: k.name
+      value: R.name
     });
   }
 }
-function se(s, e, t) {
+function ae(s, e, t) {
   const i = t / 4294967296, n = t;
   s.setUint32(e, i), s.setUint32(e + 4, n);
 }
-function K(s, e, t) {
+function Y(s, e, t) {
   const i = Math.floor(t / 4294967296), n = t;
   s.setUint32(e, i), s.setUint32(e + 4, n);
 }
-function oe(s, e) {
+function ce(s, e) {
   const t = s.getInt32(e), i = s.getUint32(e + 4);
   return t * 4294967296 + i;
 }
-const re = -1, le = 4294967296 - 1, ae = 17179869184 - 1;
-function ce({ sec: s, nsec: e }) {
-  if (s >= 0 && e >= 0 && s <= ae)
-    if (e === 0 && s <= le) {
+const fe = -1, he = 4294967296 - 1, ue = 17179869184 - 1;
+function de({ sec: s, nsec: e }) {
+  if (s >= 0 && e >= 0 && s <= ue)
+    if (e === 0 && s <= he) {
       const t = new Uint8Array(4);
       return new DataView(t.buffer).setUint32(0, s), t;
     } else {
@@ -138,24 +138,24 @@ function ce({ sec: s, nsec: e }) {
     }
   else {
     const t = new Uint8Array(12), i = new DataView(t.buffer);
-    return i.setUint32(0, e), K(i, 4, s), t;
+    return i.setUint32(0, e), Y(i, 4, s), t;
   }
 }
-function fe(s) {
+function we(s) {
   const e = s.getTime(), t = Math.floor(e / 1e3), i = (e - t * 1e3) * 1e6, n = Math.floor(i / 1e9);
   return {
     sec: t + n,
     nsec: i - n * 1e9
   };
 }
-function he(s) {
+function ge(s) {
   if (s instanceof Date) {
-    const e = fe(s);
-    return ce(e);
+    const e = we(s);
+    return de(e);
   } else
     return null;
 }
-function de(s) {
+function xe(s) {
   const e = new DataView(s.buffer, s.byteOffset, s.byteLength);
   switch (s.byteLength) {
     case 4:
@@ -165,25 +165,25 @@ function de(s) {
       return { sec: n, nsec: r };
     }
     case 12: {
-      const t = oe(e, 4), i = e.getUint32(0);
+      const t = ce(e, 4), i = e.getUint32(0);
       return { sec: t, nsec: i };
     }
     default:
-      throw new k(`Unrecognized data size for timestamp (expected 4, 8, or 12): ${s.length}`);
+      throw new R(`Unrecognized data size for timestamp (expected 4, 8, or 12): ${s.length}`);
   }
 }
-function ue(s) {
-  const e = de(s);
+function me(s) {
+  const e = xe(s);
   return new Date(e.sec * 1e3 + e.nsec / 1e6);
 }
-const we = {
-  type: re,
-  encode: he,
-  decode: ue
+const pe = {
+  type: fe,
+  encode: ge,
+  decode: me
 };
-class P {
+class O {
   constructor() {
-    this.builtInEncoders = [], this.builtInDecoders = [], this.encoders = [], this.decoders = [], this.register(we);
+    this.builtInEncoders = [], this.builtInDecoders = [], this.encoders = [], this.decoders = [], this.register(pe);
   }
   register({ type: e, encode: t, decode: i }) {
     if (e >= 0)
@@ -200,7 +200,7 @@ class P {
         const r = n(e, t);
         if (r != null) {
           const o = -1 - i;
-          return new F(o, r);
+          return new k(o, r);
         }
       }
     }
@@ -210,31 +210,31 @@ class P {
         const r = n(e, t);
         if (r != null) {
           const o = i;
-          return new F(o, r);
+          return new k(o, r);
         }
       }
     }
-    return e instanceof F ? e : null;
+    return e instanceof k ? e : null;
   }
   decode(e, t, i) {
     const n = t < 0 ? this.builtInDecoders[-1 - t] : this.decoders[t];
-    return n ? n(e, t, i) : new F(t, e);
+    return n ? n(e, t, i) : new k(t, e);
   }
 }
-P.defaultCodec = new P();
-function ge(s) {
+O.defaultCodec = new O();
+function ye(s) {
   return s instanceof ArrayBuffer || typeof SharedArrayBuffer < "u" && s instanceof SharedArrayBuffer;
 }
-function xe(s) {
-  return s instanceof Uint8Array ? s : ArrayBuffer.isView(s) ? new Uint8Array(s.buffer, s.byteOffset, s.byteLength) : ge(s) ? new Uint8Array(s) : Uint8Array.from(s);
+function Ue(s) {
+  return s instanceof Uint8Array ? s : ArrayBuffer.isView(s) ? new Uint8Array(s.buffer, s.byteOffset, s.byteLength) : ye(s) ? new Uint8Array(s) : Uint8Array.from(s);
 }
-const me = 100, pe = 2048;
-class L {
+const Se = 100, ve = 2048;
+class $ {
   constructor(e) {
-    this.entered = !1, this.extensionCodec = e?.extensionCodec ?? P.defaultCodec, this.context = e?.context, this.useBigInt64 = e?.useBigInt64 ?? !1, this.maxDepth = e?.maxDepth ?? me, this.initialBufferSize = e?.initialBufferSize ?? pe, this.sortKeys = e?.sortKeys ?? !1, this.forceFloat32 = e?.forceFloat32 ?? !1, this.ignoreUndefined = e?.ignoreUndefined ?? !1, this.forceIntegerToFloat = e?.forceIntegerToFloat ?? !1, this.pos = 0, this.view = new DataView(new ArrayBuffer(this.initialBufferSize)), this.bytes = new Uint8Array(this.view.buffer);
+    this.entered = !1, this.extensionCodec = e?.extensionCodec ?? O.defaultCodec, this.context = e?.context, this.useBigInt64 = e?.useBigInt64 ?? !1, this.maxDepth = e?.maxDepth ?? Se, this.initialBufferSize = e?.initialBufferSize ?? ve, this.sortKeys = e?.sortKeys ?? !1, this.forceFloat32 = e?.forceFloat32 ?? !1, this.ignoreUndefined = e?.ignoreUndefined ?? !1, this.forceIntegerToFloat = e?.forceIntegerToFloat ?? !1, this.pos = 0, this.view = new DataView(new ArrayBuffer(this.initialBufferSize)), this.bytes = new Uint8Array(this.view.buffer);
   }
   clone() {
-    return new L({
+    return new $({
       extensionCodec: this.extensionCodec,
       context: this.context,
       useBigInt64: this.useBigInt64,
@@ -316,8 +316,8 @@ class L {
       throw new Error(`Too long string: ${e} bytes in UTF-8`);
   }
   encodeString(e) {
-    const i = Z(e);
-    this.ensureBufferSizeToWrite(5 + i), this.writeStringHeader(i), ne(e, this.bytes, this.pos), this.pos += i;
+    const i = ie(e);
+    this.ensureBufferSizeToWrite(5 + i), this.writeStringHeader(i), le(e, this.bytes, this.pos), this.pos += i;
   }
   encodeObject(e, t) {
     const i = this.extensionCodec.tryToEncode(e, this.context);
@@ -342,7 +342,7 @@ class L {
       this.writeU8(198), this.writeU32(t);
     else
       throw new Error(`Too large binary: ${t}`);
-    const i = xe(e);
+    const i = Ue(e);
     this.writeU8a(i);
   }
   encodeArray(e, t) {
@@ -439,10 +439,10 @@ class L {
     this.ensureBufferSizeToWrite(8), this.view.setFloat64(this.pos, e), this.pos += 8;
   }
   writeU64(e) {
-    this.ensureBufferSizeToWrite(8), se(this.view, this.pos, e), this.pos += 8;
+    this.ensureBufferSizeToWrite(8), ae(this.view, this.pos, e), this.pos += 8;
   }
   writeI64(e) {
-    this.ensureBufferSizeToWrite(8), K(this.view, this.pos, e), this.pos += 8;
+    this.ensureBufferSizeToWrite(8), Y(this.view, this.pos, e), this.pos += 8;
   }
   writeBigUint64(e) {
     this.ensureBufferSizeToWrite(8), this.view.setBigUint64(this.pos, e), this.pos += 8;
@@ -451,10 +451,10 @@ class L {
     this.ensureBufferSizeToWrite(8), this.view.setBigInt64(this.pos, e), this.pos += 8;
   }
 }
-function ye(s, e) {
-  return new L(e).encodeSharedRef(s);
+function Ee(s, e) {
+  return new $(e).encodeSharedRef(s);
 }
-const m = Object.freeze({
+const p = Object.freeze({
   initializing: 1,
   waitingRobotType: 2,
   generatorMaking: 3,
@@ -466,30 +466,30 @@ const m = Object.freeze({
   moving: 3,
   rewinding: 4
 });
-let p = m.initializing, w = x.dormant;
+let y = p.initializing, w = x.dormant;
 console.log("Now intended to import ModuleFactory");
-const C = await import("/wasm/slrm_module.js"), Ue = await import("/wasm/cd_module.js");
-console.log("ModuleFactory: ", C);
-console.log("ModuleFactory.default type:", typeof C.default);
-if (typeof C.default != "function")
-  throw console.error("ModuleFactory.default is not a function:", C.default), new Error("ModuleFactory.default is not a valid function");
-const d = await C.default();
-if (!d)
+const B = await import("/wasm/slrm_module.js"), Te = await import("/wasm/cd_module.js");
+console.log("ModuleFactory: ", B);
+console.log("ModuleFactory.default type:", typeof B.default);
+if (typeof B.default != "function")
+  throw console.error("ModuleFactory.default is not a function:", B.default), new Error("ModuleFactory.default is not a valid function");
+const u = await B.default();
+if (!u)
   throw console.error("Failed to load SlrmModule"), new Error("SlrmModule could not be loaded");
-const A = await Ue.default();
-if (!A)
+const M = await Te.default();
+if (!M)
   throw console.error("Failed to load CdModule"), new Error("CdModule could not be loaded");
-const D = {
-  [d.CmdVelGeneratorStatus.OK.value]: "OK",
-  [d.CmdVelGeneratorStatus.ERROR.value]: "ERROR",
-  [d.CmdVelGeneratorStatus.END.value]: "END",
-  [d.CmdVelGeneratorStatus.SINGULARITY.value]: "SINGULARITY",
-  [d.CmdVelGeneratorStatus.REWIND.value]: "REWIND"
-}, J = 4, $ = 0n / BigInt(J);
-let V = null, _ = 0n, G = null, N = null, a = null, b = null, v = null, I = null;
-const R = [], z = [];
-let u = null, y = null, M = null, q = null, T = !1;
-function Se(s) {
+const _ = {
+  [u.CmdVelGeneratorStatus.OK.value]: "OK",
+  [u.CmdVelGeneratorStatus.ERROR.value]: "ERROR",
+  [u.CmdVelGeneratorStatus.END.value]: "END",
+  [u.CmdVelGeneratorStatus.SINGULARITY.value]: "SINGULARITY",
+  [u.CmdVelGeneratorStatus.REWIND.value]: "REWIND"
+}, Q = 4, J = 0n / BigInt(Q);
+let V = null, G = 0n, L = null, N = null, a = null, F = null, v = null, T = null;
+const z = [], D = [];
+let d = null, U = null, C = null, Z = null, I = !1;
+function Ne(s) {
   function e(t) {
     const i = new s.DoubleVector();
     for (let n = 0; n < t.length; ++n)
@@ -501,7 +501,7 @@ function Se(s) {
     // ... more helpers
   };
 }
-function ve(s) {
+function Ie(s) {
   function e(i) {
     const n = new s.DoubleVector();
     for (let r = 0; r < i.length; ++r)
@@ -521,32 +521,47 @@ function ve(s) {
     makeConvexShape: t
   };
 }
-let U = null, X = !1;
-function H(s, e) {
+let j = !1, m = null, P = null, W = [], A = null;
+function H(s) {
+  A = s, m = new WebSocket(A), m.onopen = () => {
+    for (console.log("WebSocket connected"); W.length > 0; )
+      m.send(W.shift());
+  }, m.onclose = (e) => {
+    console.log("webSocket closed, will retry...", e.code, e.reason), Ve();
+  }, m.onerror = (e) => {
+    console.error("WebSocket error", e), m.close();
+  };
+}
+function Ve() {
+  P || (P = setTimeout(() => {
+    P = null, A && (console.log("Reconnecting..."), H(A));
+  }, 3e3));
+}
+function X(s, e) {
   function t(o, l) {
-    const f = new o.DoubleVector();
-    for (let h = 0; h < l.length; ++h)
-      f.push_back(l[h]);
-    return f;
+    const c = new o.DoubleVector();
+    for (let f = 0; f < l.length; ++f)
+      c.push_back(l[f]);
+    return c;
   }
   function i(o, l) {
-    const f = new o.JointModelFlatStructVector();
-    for (let h = 0; h < l.length; ++h)
-      f.push_back(l[h]);
-    return f;
+    const c = new o.JointModelFlatStructVector();
+    for (let f = 0; f < l.length; ++f)
+      c.push_back(l[f]);
+    return c;
   }
   const n = e.map((o) => {
-    const l = o.origin.$.xyz ?? [NaN, NaN, NaN], f = t(
+    const l = o.origin.$.xyz ?? [NaN, NaN, NaN], c = t(
       s,
       Array.isArray(l) && l.length === 3 ? l : [NaN, NaN, NaN]
-    ), h = o.origin.$.rpy ?? [NaN, NaN, NaN], c = t(
+    ), f = o.origin.$.rpy ?? [NaN, NaN, NaN], h = t(
       s,
-      Array.isArray(h) && h.length === 3 ? h : [NaN, NaN, NaN]
+      Array.isArray(f) && f.length === 3 ? f : [NaN, NaN, NaN]
     ), E = o.axis.$.xyz ?? [NaN, NaN, NaN], g = t(
       s,
       Array.isArray(E) && E.length === 3 ? E : [NaN, NaN, NaN]
-    ), S = new s.JointModelFlatStruct(g, f, c);
-    return g.delete(), f.delete(), c.delete(), S;
+    ), S = new s.JointModelFlatStruct(g, c, h);
+    return g.delete(), c.delete(), h.delete(), S;
   });
   return { jointModelVector: i(s, n), jointModelsArray: n };
 }
@@ -555,52 +570,52 @@ self.onmessage = function(s) {
   const e = s.data;
   switch (e.type) {
     case "shutdown":
-      U && (U.close(), U = null), d && d.delete(), self.postMessage({ type: "shutdown_complete" }), X = !0;
+      m && (m.close(), m = null), u && u.delete(), self.postMessage({ type: "shutdown_complete" }), j = !0;
       break;
     case "init":
-      if (p === m.waitingRobotType) {
-        p = m.generatorMaking, console.log("constructing CmdVelGenerator with :", e.filename);
-        const { makeDoubleVector: t } = Se(d), { makeCdDoubleVector: i, makeConvexShape: n } = ve(A);
-        M = t, q = i, d.setJsLogLevel(3), fetch(e.filename).then((r) => r.json()).then((r) => {
-          const o = r.filter((c) => c.$.type === "revolute"), {
+      if (y === p.waitingRobotType) {
+        y = p.generatorMaking, console.log("constructing CmdVelGenerator with :", e.filename);
+        const { makeDoubleVector: t } = Ne(u), { makeCdDoubleVector: i, makeConvexShape: n } = Ie(M);
+        C = t, Z = i, u.setJsLogLevel(3), fetch(e.filename).then((r) => r.json()).then((r) => {
+          const o = r.filter((h) => h.$.type === "revolute"), {
             jointModelVector: l,
-            jointModelsArray: f
-          } = H(d, o);
-          if (console.log("type of SlrmModule.CmdVelGen: " + typeof d.CmdVelGenerator), u = new d.CmdVelGenerator(l), console.log("type of jointModels is ", typeof jointModels), f.forEach((c) => c.delete()), l.delete(), u == null) {
-            console.error("generation of CmdVelGen instance failed"), u = null;
+            jointModelsArray: c
+          } = X(u, o);
+          if (console.log("type of SlrmModule.CmdVelGen: " + typeof u.CmdVelGenerator), d = new u.CmdVelGenerator(l), console.log("type of jointModels is ", typeof jointModels), c.forEach((h) => h.delete()), l.delete(), d == null) {
+            console.error("generation of CmdVelGen instance failed"), d = null;
             return;
           }
-          u != null && console.log("CmdVelGen instance created:", u), o.forEach((c) => {
-            R.push(c.limit.$.upper), z.push(c.limit.$.lower);
-          }), console.log("jointLimits: ", R, z), console.log("Status Definitions: OK:" + d.CmdVelGeneratorStatus.OK.value + ", ERROR:" + d.CmdVelGeneratorStatus.ERROR.value + ", END:" + d.CmdVelGeneratorStatus.END.value), u.setExactSolution(T), u.setLinearVelocityLimit(10), u.setAngularVelocityLimit(2 * Math.PI), u.setAngularGain(20), u.setLinearGain(20);
-          const h = t(Array(o.length).fill(Math.PI * 2));
-          if (u.setJointVelocityLimit(h), h.delete(), e.linkShapes) {
+          d != null && console.log("CmdVelGen instance created:", d), o.forEach((h) => {
+            z.push(h.limit.$.upper), D.push(h.limit.$.lower);
+          }), console.log("jointLimits: ", z, D), console.log("Status Definitions: OK:" + u.CmdVelGeneratorStatus.OK.value + ", ERROR:" + u.CmdVelGeneratorStatus.ERROR.value + ", END:" + u.CmdVelGeneratorStatus.END.value), d.setExactSolution(I), d.setLinearVelocityLimit(10), d.setAngularVelocityLimit(2 * Math.PI), d.setAngularGain(20), d.setLinearGain(20);
+          const f = t(Array(o.length).fill(Math.PI * 2));
+          if (d.setJointVelocityLimit(f), f.delete(), e.linkShapes) {
             const {
-              jointModelVector: c,
+              jointModelVector: h,
               jointModelsArray: E
-            } = H(A, o), g = i([0, 0, 0]), S = i([1, 0, 0, 0]);
-            y = new A.CollisionDetection(
-              c,
+            } = X(M, o), g = i([0, 0, 0]), S = i([1, 0, 0, 0]);
+            U = new M.CollisionDetection(
+              h,
               g,
               S
-            ), c.delete(), E.forEach((B) => B.delete()), g.delete(), S.delete();
+            ), h.delete(), E.forEach((b) => b.delete()), g.delete(), S.delete();
           }
-          y && fetch(e.linkShapes).then((c) => c.json()).then((c) => {
-            if (c.length !== o.length + 2) {
+          U && fetch(e.linkShapes).then((h) => h.json()).then((h) => {
+            if (h.length !== o.length + 2) {
               console.error("リンク形状定義の数がリンクモデルの数(+2)と一致しません。");
               return;
             }
-            console.log("linkShapes.length: ", c.length);
-            for (let g = 0; g < c.length; ++g) {
+            console.log("linkShapes.length: ", h.length);
+            for (let g = 0; g < h.length; ++g) {
               console.log(`リンク番号${g} のvector生成`);
-              const S = new A.ConvexShapeVector();
-              for (const B of c[g]) {
-                const O = n(B);
-                console.log("size of convex js: ", B.length), S.push_back(O), O.delete();
+              const S = new M.ConvexShapeVector();
+              for (const b of h[g]) {
+                const K = n(b);
+                console.log("size of convex js: ", b.length), S.push_back(K), K.delete();
               }
-              y.addLinkShape(g, S), S.delete();
+              U.addLinkShape(g, S), S.delete();
             }
-            console.log("setting up of link shapes is finished"), y.infoLinkShapes();
+            console.log("setting up of link shapes is finished"), U.infoLinkShapes();
             const E = [
               [0, 2],
               [0, 3],
@@ -621,94 +636,90 @@ self.onmessage = function(s) {
               [3, 6],
               [3, 7]
             ];
-            y.clearTestPairs();
+            U.clearTestPairs();
             for (const g of E)
-              y.addTestPair(g[0], g[1]);
-          }).catch((c) => {
-            console.error("Error fetching or parsing SHAPE file:", c);
-          }), e.bridgeUrl && (console.log("recieve bridge URL: ", e.bridgeUrl), U = new WebSocket(e.bridgeUrl), U.onopen = () => {
-            console.log("WebSocket connected");
-          }, U.onerror = (c) => {
-            console.error("WebSocket error", c);
-          }), p = m.generatorReady, self.postMessage({ type: "generator_ready" });
+              U.addTestPair(g[0], g[1]);
+          }).catch((h) => {
+            console.error("Error fetching or parsing SHAPE file:", h);
+          }), e.bridgeUrl && (console.log("recieve bridge URL: ", e.bridgeUrl), H(e.bridgeUrl)), y = p.generatorReady, self.postMessage({ type: "generator_ready" });
         }).catch((r) => {
           console.error("Error fetching or parsing URDF.JSON file:", r);
         });
       }
       break;
     case "set_initial_joints":
-      (p === m.generatorReady || p === m.slrmReady) && e.joints && (a = new Float64Array(e.joints.length), a.set(e.joints), G = a.slice(), b = a.slice(), v = new Float64Array(a.length), console.log("Setting initial joints:" + a.map((t) => (t * 57.2958).toFixed(1)).join(", ")), (!N || a.length !== N.length) && (N = Array(a.length).fill(null).map((t, i) => i <= 1 ? new W(5, 1, 0.2, 0.02) : new W(5, 1, 1, 0.0625))), N.forEach((t, i) => {
-        t.reset(), t.setX0(G[i]);
-      }), p = m.slrmReady, V = [], w = x.moving, console.log("Worker state changed to slrmReady"));
+      (y === p.generatorReady || y === p.slrmReady) && e.joints && (a = new Float64Array(e.joints.length), a.set(e.joints), L = a.slice(), F = a.slice(), v = new Float64Array(a.length), console.log("Setting initial joints:" + a.map((t) => (t * 57.2958).toFixed(1)).join(", ")), (!N || a.length !== N.length) && (N = Array(a.length).fill(null).map((t, i) => i <= 1 ? new q(5, 1, 0.2, 0.02) : new q(5, 1, 1, 0.0625))), N.forEach((t, i) => {
+        t.reset(), t.setX0(L[i]);
+      }), y = p.slrmReady, V = [], w = x.moving, console.log("Worker state changed to slrmReady"));
       break;
     case "destination":
-      p === m.slrmReady && e.endLinkPose && (V = [...e.endLinkPose], w = x.moving);
+      y === p.slrmReady && e.endLinkPose && (V = [...e.endLinkPose], w = x.moving);
       break;
     case "slow_rewind":
-      p === m.slrmReady && a && G && N && (e.slowRewind == !0 ? w = x.rewinding : w = x.converged);
+      y === p.slrmReady && a && L && N && (e.slowRewind == !0 ? w = x.rewinding : w = x.converged);
       break;
     case "set_end_effector_point":
-      if (e.endEffectorPoint && M && e.endEffectorPoint.length === 3 && typeof e.endEffectorPoint[0] == "number" && typeof e.endEffectorPoint[1] == "number" && typeof e.endEffectorPoint[2] == "number") {
+      if (e.endEffectorPoint && C && e.endEffectorPoint.length === 3 && typeof e.endEffectorPoint[0] == "number" && typeof e.endEffectorPoint[1] == "number" && typeof e.endEffectorPoint[2] == "number") {
         console.debug("Setting end effector point: ", e.endEffectorPoint);
-        const t = M(e.endEffectorPoint);
-        u.setEndEffectorPosition(t), t.delete();
+        const t = C(e.endEffectorPoint);
+        d.setEndEffectorPosition(t), t.delete();
         const i = w;
-        w = x.moving, V = [], Y(0), w = i;
+        w = x.moving, V = [], ee(0), w = i;
       }
       break;
     case "set_exact_solution":
-      (p === m.generatorReady || p === m.slrmReady) && e.exactSolution !== void 0 && (e.exactSolution === !0 ? T = !0 : T = !1, u.setExactSolution(T), console.log("Exact solution for singularity set to: ", T));
+      (y === p.generatorReady || y === p.slrmReady) && e.exactSolution !== void 0 && (e.exactSolution === !0 ? I = !0 : I = !1, d.setExactSolution(I), console.log("Exact solution for singularity set to: ", I));
       break;
   }
 };
-function Y(s) {
+function ee(s) {
   let e = null, t = null, i = null, n = null;
-  if (!(!u || !a)) {
-    if (p === m.slrmReady && (w === x.moving || w === x.rewinding)) {
+  if (!(!d || !a)) {
+    if (y === p.slrmReady && (w === x.moving || w === x.rewinding)) {
       if (w === x.rewinding) {
-        const f = N.map((h, c) => h.calcNext(a[c], v[c], s));
-        for (let h = 0; h < a.length; h++)
-          a[h] = f[h].x, v[h] = f[h].v;
-        if (U) {
-          const h = {
+        const c = N.map((f, h) => f.calcNext(a[h], v[h], s));
+        for (let f = 0; f < a.length; f++)
+          a[f] = c[f].x, v[f] = c[f].v;
+        if (m) {
+          const f = {
             topic: "actuator1",
-            timestamp: Date.now(),
-            frame_id: "world",
+            javascriptStamp: Date.now(),
+            header: {},
             position: [...a],
             velocity: [...v],
             normalized: []
-          }, c = ye(h);
-          U.readyState === WebSocket.OPEN && U.send(c);
+          }, h = Ee(f);
+          m.readyState === WebSocket.OPEN ? m.send(h) : A && (console.log("Not connected, queueing message"), W.push(f), (!m || m.readyState === WebSocket.CLOSED) && H(A));
         }
         V = [];
       } else w === x.converged && v.fill(0);
       if (V === null)
         return;
-      const r = M(a), o = M(V), l = u.calcVelocityPQ(r, o);
+      const r = C(a), o = C(V), l = d.calcVelocityPQ(r, o);
       if (r.delete(), o.delete(), w !== x.rewinding)
-        for (let f = 0; f < v.length; f++)
-          v[f] = l.joint_velocities.get(f);
-      if (l.joint_velocities.delete(), e = l.status, t = l.other, (!i || !n) && (i = new Float64Array(3), n = new Float64Array(4)), i[0] = l.position.get(0), i[1] = l.position.get(1), i[2] = l.position.get(2), n[0] = l.quaternion.get(0), n[1] = l.quaternion.get(1), n[2] = l.quaternion.get(2), n[3] = l.quaternion.get(3), l.position.delete(), l.quaternion.delete(), w === x.rewinding && l.status.value !== d.CmdVelGeneratorStatus.END.value && l.status.value !== d.CmdVelGeneratorStatus.OK.value && console.warn("CmdVelGenerator returned status other than END or OK during rewinding:", D[l.status.value]), w === x.moving)
+        for (let c = 0; c < v.length; c++)
+          v[c] = l.joint_velocities.get(c);
+      if (l.joint_velocities.delete(), e = l.status, t = l.other, (!i || !n) && (i = new Float64Array(3), n = new Float64Array(4)), i[0] = l.position.get(0), i[1] = l.position.get(1), i[2] = l.position.get(2), n[0] = l.quaternion.get(0), n[1] = l.quaternion.get(1), n[2] = l.quaternion.get(2), n[3] = l.quaternion.get(3), l.position.delete(), l.quaternion.delete(), w === x.rewinding && l.status.value !== u.CmdVelGeneratorStatus.END.value && l.status.value !== u.CmdVelGeneratorStatus.OK.value && console.warn("CmdVelGenerator returned status other than END or OK during rewinding:", _[l.status.value]), w === x.moving)
         switch (l.status.value) {
-          case d.CmdVelGeneratorStatus.OK.value:
-            b.set(a);
-            for (let f = 0; f < a.length; f++)
-              a[f] = a[f] + v[f] * s;
-            if (y) {
-              const f = q(a);
-              y.calcFk(f), f.delete(), y.testCollisionPairs().size() !== 0 && a.set(b);
+          case u.CmdVelGeneratorStatus.OK.value:
+            F.set(a);
+            for (let c = 0; c < a.length; c++)
+              a[c] = a[c] + v[c] * s;
+            if (U) {
+              const c = Z(a);
+              U.calcFk(c), c.delete(), U.testCollisionPairs().size() !== 0 && a.set(F);
             }
             break;
-          case d.CmdVelGeneratorStatus.END.value:
+          case u.CmdVelGeneratorStatus.END.value:
             w = x.converged;
             break;
-          case d.CmdVelGeneratorStatus.SINGULARITY.value:
+          case u.CmdVelGeneratorStatus.SINGULARITY.value:
             console.error("CmdVelGenerator returned SINGULARITY status");
             break;
-          case d.CmdVelGeneratorStatus.REWIND.value:
-            a.set(b);
+          case u.CmdVelGeneratorStatus.REWIND.value:
+            a.set(F);
             break;
-          case d.CmdVelGeneratorStatus.ERROR.value:
+          case u.CmdVelGeneratorStatus.ERROR.value:
             console.error("CmdVelGenerator returned ERROR status");
             break;
           default:
@@ -719,11 +730,11 @@ function Y(s) {
     if (e !== null && t !== null) {
       let r = Array(a.length).fill(0);
       for (let o = 0; o < a.length; o++)
-        a[o] > R[o] && (r[o] = 1, a[o] = R[o] - 1e-3), a[o] < z[o] && (r[o] = -1, a[o] = z[o] + 1e-3);
+        a[o] > z[o] && (r[o] = 1, a[o] = z[o] - 1e-3), a[o] < D[o] && (r[o] = -1, a[o] = D[o] + 1e-3);
       self.postMessage({ type: "joints", joints: [...a] }), self.postMessage({
         type: "status",
-        status: D[e.value],
-        exact_solution: T,
+        status: _[e.value],
+        exact_solution: I,
         condition_number: t.condition_number,
         manipulability: t.manipulability,
         sensitivity_scale: t.sensitivity_scale,
@@ -732,11 +743,11 @@ function Y(s) {
         type: "pose",
         position: i,
         quaternion: n
-      }), _++, $ !== 0n && _ % $ === 0n && (I !== null && a !== null && I.length === a.length && Math.max(...I.map((o, l) => Math.abs(o - a[l]))) > 5e-3 && console.log(
+      }), G++, J !== 0n && G % J === 0n && (T !== null && a !== null && T.length === a.length && Math.max(...T.map((o, l) => Math.abs(o - a[l]))) > 5e-3 && console.log(
         "counter:",
-        _,
+        G,
         "status: ",
-        D[e.value],
+        _[e.value],
         " condition:",
         t.condition_number.toFixed(2),
         " m:",
@@ -744,18 +755,18 @@ function Y(s) {
         " k:",
         t.sensitivity_scale.toFixed(3) + `
 limit flags: ` + r.join(", ")
-      ), I || (I = a.slice()), I.set(a));
+      ), T || (T = a.slice()), T.set(a));
     }
   }
 }
-function Q(s = performance.now() - J) {
+function te(s = performance.now() - Q) {
   const e = performance.now(), t = e - s;
-  if (Y(t / 1e3), X === !0) {
+  if (ee(t / 1e3), j === !0) {
     self.postMessage({ type: "shutdown_complete" }), console.log("main loop was finished"), self.close();
     return;
   }
-  setTimeout(() => Q(e), 0);
+  setTimeout(() => te(e), 0);
 }
-p = m.waitingRobotType;
+y = p.waitingRobotType;
 self.postMessage({ type: "ready" });
-Q();
+te();

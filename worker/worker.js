@@ -3,7 +3,8 @@
 // import * as THREE from 'three' // THREE.jsを使わなければNext.jsやViteでのビルドが不要
 // worker state definition
 import {TrapVelocGenerator} from './TrapVelocGenerator.js';
-import { encode, decode } from '@msgpack/msgpack';
+// import { encode, decode } from '@msgpack/msgpack';
+import { encode } from '@msgpack/msgpack';
 
 const st = Object.freeze({
   initializing: 1,
@@ -110,8 +111,47 @@ function createCdHelpers(module) {
 }
 
 
-let socket = null; // WebSocketオブジェクト
-let shutdownFlag = false; // workerの終了フラグ
+// ****************
+// workerの終了フラグ <- 終了時の後始末用
+let shutdownFlag = false;
+// ********************************
+// topic_bridge用WebSocketハンドラ
+//
+let socket = null; // the WebSocket object
+let reconnectTimer = null;
+let messageQueue = [];
+let bridgeUrl = null;
+
+function connectBridge(url) {
+  bridgeUrl = url;
+  socket = new WebSocket(bridgeUrl);
+  socket.onopen = () => {
+    console.log('WebSocket connected');
+    while (messageQueue.length > 0) {
+      socket.send(messageQueue.shift());
+    }
+  };
+  socket.onclose = (e) => {
+    console.log('webSocket closed, will retry...', e.code,e.reason);
+    scheduleReconnect();
+  };
+  socket.onerror = (err) => {
+    console.error('WebSocket error', err);
+    socket.close();	// the socket must be closed to reconnect
+  };
+}
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setTimeout(()=>{
+    reconnectTimer = null;
+    if (bridgeUrl) {
+      console.log('Reconnecting...');
+      connectBridge(bridgeUrl);
+    }
+  }, 3000); // 3秒後に再接続
+}
+
+
 
 function createJointModel(mod, list) {
   // 各行をJointModelFlatStructに変換
@@ -272,15 +312,8 @@ self.onmessage = function(event) {
 	if (data.bridgeUrl) {
 	  console.log('recieve bridge URL: ', data.bridgeUrl);
 	  // bridge用のURLが付いているためbridgeが使える
-	  socket = new WebSocket(data.bridgeUrl);
-	  socket.onopen = () => {
-	    console.log('WebSocket connected');
-	  };
-	  socket.onerror = (err) => {
-	    console.error('WebSocket error', err);
-	  };
+	  connectBridge(data.bridgeUrl);
 	}
-
 	// なにかの加減でオブジェクト生成に失敗した場合はここでエラーがthrownされる
 	workerState = st.generatorReady;
 	self.postMessage({type: 'generator_ready'});
@@ -410,14 +443,24 @@ function mainFunc(timeStep) {
       if (socket) { // デバッグ用出力
 	const msg = {
 	  topic:'actuator1',
-	  timestamp: Date.now(),
-	  frame_id: 'world',
+	  javascriptStamp: Date.now(),
+	  header: { },
 	  position: [...joints],
 	  velocity: [...velocities],
 	  normalized: []
 	}
 	const binary = encode(msg);
-	if (socket.readyState === WebSocket.OPEN) { socket.send(binary); }
+	if (socket.readyState === WebSocket.OPEN) {
+	  socket.send(binary);
+	} else {
+	  if (bridgeUrl) {
+	    console.log('Not connected, queueing message');
+	    messageQueue.push(msg);
+	    if (!socket || socket.readyState === WebSocket.CLOSED) {
+	      connectBridge(bridgeUrl);
+	    }
+	  }
+	}
       }
       controllerTfVec = []; // 現在値をゴールにしてcalcVelocityPQを1回実行する
     } else if (subState === sst.converged) {
