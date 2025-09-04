@@ -1,3 +1,4 @@
+import * as MessagePack from '@msgpack/msgpack';
 import { three2worldMatGen, world2threeMatGen } from './constTransformGen';
 
 let registered = false;
@@ -5,6 +6,7 @@ let lastUpdate = 0;
 
 let controllerCoord = new THREE.Object3D();
 let controllerPosition = new THREE.Vector3();
+let controllerOrientation = new THREE.Quaternion();
 let endLinkPosition = new THREE.Vector3();
 let endLinkOrientation = new THREE.Quaternion();
 let baseLinkPose = null;
@@ -39,6 +41,8 @@ export default function registerAframeComponents(options) {
     controllerModeChange,
     toolPointMover,
     controllerUpdater,
+    topicBridgeWebSocketURL,
+    controllerOffset,
   } = options;
   
   AFRAME.registerComponent('robot-click', {
@@ -140,11 +144,13 @@ export default function registerAframeComponents(options) {
       if (!obj.matrixWorld) return; // not yet initialized
       controllerCoord = obj;
       obj.getWorldPosition(controllerPosition);
+      obj.getWorldQuaternion(controllerOrientation);
       const pose = obj.matrixWorld;
       if (this._my_init_flag) {
-	if (!pose.equals(this.lastPose)) {
-	  const controllerBase = baseLinkPoseInv.current.clone().multiply(pose);
-          set_controller_object(controllerBase);
+	// if (!pose.equals(this.lastPose)) {
+	const controllerBase = baseLinkPoseInv.current.clone().multiply(pose)
+	      .multiply(controllerOffset.current)
+        set_controller_object(controllerBase);
 	  //
 	  // // **** debugging output ****
 	  // const position = new THREE.Vector3();
@@ -154,9 +160,10 @@ export default function registerAframeComponents(options) {
 	  // 	      + ", " + position.y.toFixed(3)
 	  // 	      + ", " + position.z.toFixed(3));
 	  // controllerUpdater();
-	}
+	//}
       } else {
-	const controllerBase = baseLinkPoseInv.current.clone().multiply(pose);
+	const controllerBase = baseLinkPoseInv.current.clone().multiply(pose)
+	      .multiply(controllerOffset.current)
 	set_controller_object(controllerBase);
 	this._my_init_flag = true;
       }
@@ -249,10 +256,55 @@ export default function registerAframeComponents(options) {
 
   AFRAME.registerComponent('axes1', {
     init() {
+      this.usePose = true;
+      this.socket = new WebSocket(topicBridgeWebSocketURL);
+      this.socket.binaryType = "arraybuffer";
+      this.socket.onopen = () => {
+	console.log('WebSocket for main thread connected');
+      };
+      this.socket.onclose = (e) => {
+	console.log('webSocket closed. code,reason: ', e.code,e.reason);
+      };
+      this.socket.onerror = (err) => {
+	console.error('WebSocket error', err);
+	socket.close();	// the socket must be closed to reconnect
+      };
+      if (this.usePose) {
+	this.socket.onmessage = function(event) {
+	  // console.debug('WebSocket message received: ', event.data);
+	  // event.data は ArrayBufferで来るはずだが Blobで来たら変換する
+	  let arrayBufferData = event.data;
+	  if (event.data instanceof Blob) {
+	    // Blob なら ArrayBuffer に変換(非同期メソッド) ほとんどの場合ここは通らないので、awaitで対処
+	    // arrayBufferData = await event.data.arrayBuffer();
+	    console.error('WebSocket data is Blob, not ArrayBuffer');
+	  }
+	  const recvData = MessagePack.decode(new Uint8Array(arrayBufferData));
+	  if (recvData.topic === 'input_pose') {
+	    // console.debug('recvData: ', recvData);
+	    this.pose = true;
+	    this.pos = new THREE.Vector3(recvData.pose.position.x,
+					 recvData.pose.position.y,
+					 recvData.pose.position.z);
+	    const ori = new THREE.Quaternion(recvData.pose.orientation.x,
+					     recvData.pose.orientation.y,
+					     recvData.pose.orientation.z,
+					     recvData.pose.orientation.w);
+	    controllerOffset.current.compose(this.pos, ori, new THREE.Vector3(1,1,1));
+	  }
+	};
+      }
+    },
+    remove() {
+      this.socket.close();
     },
     tick() {
-      this.el.object3D.position.copy(controllerPosition);
-      this.el.object3D.quaternion.copy(endLinkOrientation);
+      const controller_T_end =
+	    controllerOrientation.clone().conjugate().multiply(endLinkOrientation);
+      this.el.object3D.quaternion.copy(controller_T_end);
+      if (this.pose) {
+	this.el.object3D.position.copy(this.pos);
+      }
     }
   });
 

@@ -217,7 +217,7 @@ self.onmessage = function(event) {
     const { makeCdDoubleVector, makeConvexShape } = createCdHelpers(CdModule);
     makeDoubleVectorG = makeDoubleVector; // グローバルにヘルパー関数を保存
     makeCdDoubleVectorG = makeCdDoubleVector; // グローバルにヘルパー関数を保存
-    SlrmModule.setJsLogLevel(3); // 3: info level, 4: debug level
+    SlrmModule.setJsLogLevel(2); // 3: info level, 4: debug level
     fetch(data.filename)
       .then(response => response.json())
       .then(jsonData => {
@@ -259,6 +259,7 @@ self.onmessage = function(event) {
 	jointVelocityLimit.delete();
 
 	if (data.linkShapes) {
+	  CdModule.setJsLogLevel(2); // 3: info level, 4: debug level
 	  const {jointModelVector,
 		 jointModelsArray} = createJointModel(CdModule, revolutes);
 	  const basePosition = makeCdDoubleVector([0.0, 0.0, 0.0]);
@@ -282,11 +283,11 @@ self.onmessage = function(event) {
 	      }
 	      console.log('linkShapes.length: ', linkShapes.length);
 	      for (let i = 0; i < linkShapes.length; ++i) {
-		console.log(`リンク番号${i} のvector生成`);
+		// console.log(`リンク番号${i} のvector生成`);
 		const shapeWasm = new CdModule.ConvexShapeVector();
 		for (const convex of linkShapes[i]) {
 		  const convexWasm = makeConvexShape(convex);
-		  console.log('size of convex js: ', convex.length);
+		  // console.log('size of convex js: ', convex.length);
 		  shapeWasm.push_back(convexWasm);
 		  convexWasm.delete();
 		}
@@ -604,6 +605,24 @@ function mainLoop(prevTime = performance.now()-timeInterval) {
     console.log('main loop was finished')
     self.close()
     return
+  }
+  if (socket) {
+    const end = performance.now();
+    const duration = end - now;
+    const startSec = Math.floor(duration / 1000);
+    const startNanosec = Math.floor((duration - startSec * 1000) * 1e6);
+    const msg = {
+      topic: 'timeRef',
+      javascriptStamp: Date.now(),
+      header: {frame_id: 'none'},
+      time_ref: { sec: startSec,
+		  nanosec: startNanosec },
+      source: 'slrm_and_cd'
+    };
+    const binary = encode(msg);
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(binary);
+    }
   }
   setTimeout(() => mainLoop(now), 0); // 次のループをスケジュール
 }

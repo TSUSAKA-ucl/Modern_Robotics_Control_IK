@@ -100,6 +100,11 @@ export default function DynamicHome(props) {
       return controllerMode[modeNumber];
     };
   });
+  // *** controller offset
+  const bridgeProtocol = location.protocol==='https:' ? 'wss:':'ws:';
+  const bridgePort = 9090;
+  const topicBridgeWebSocketURL = `${bridgeProtocol}//${location.hostname}:${bridgePort}`;
+  const controllerOffset = React.useRef(new THREE.Matrix4()); // identity matrix
   // *** function that sets the end effector point in the worker thread
   const [toolPointMover] = React.useState(() => {
     let toolPoint = new THREE.Vector3(0, 0, 0);
@@ -175,13 +180,11 @@ export default function DynamicHome(props) {
       workerRef.current.onmessage = (event) => {
 	switch (event.data.type) {
 	case 'ready':
-	  const bridgeProtocol = location.protocol==='https:' ? 'wss:':'ws:';
-	  const bridgePort = 9090;
 	  workerRef.current
 	    .postMessage({ type: 'init',
 			   filename: robot_model +'/'+'urdf.json',
 			   linkShapes: robot_model +'/'+'shapes.json',
-			   bridgeUrl: `${bridgeProtocol}//${location.hostname}:${bridgePort}`,
+			   bridgeUrl: topicBridgeWebSocketURL
 			 });
 	  break;
 	case 'generator_ready':
@@ -358,7 +361,7 @@ export default function DynamicHome(props) {
       }
       if (updateStartPose || endLinkPoseStart.current === null){
 	// do update start pose of end link
-	console.log("update start pose of end link");
+	console.debug("update start pose of end link");
 	if (workerLastPose.current) {
           endLinkPoseStart.current = endLinkPose.current.clone();
           // endLinkPoseStart.current = three2worldMat.clone()
@@ -458,7 +461,9 @@ export default function DynamicHome(props) {
       setSlowRewindMode,
       controllerModeChange,
       toolPointMover,
-      controllerUpdater
+      controllerUpdater,
+      topicBridgeWebSocketURL,
+      controllerOffset,
     });
     // set rendered state after a short delay to ensure the scene is ready
     // setTimeout(() => set_rendered(true), 16.5);
@@ -518,16 +523,16 @@ export default function DynamicHome(props) {
     publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
   }
 
-  useMqtt({
-    props,
-    requestRobot,
-    thetaBodyMQTT: setThetaBody,
-    thetaToolMQTT: setThetaTool,
-    robotIDRef,
-    MQTT_DEVICE_TOPIC, 
-    MQTT_CTRL_TOPIC, 
-    MQTT_ROBOT_STATE_TOPIC,
-  });
+  // useMqtt({
+  //   props,
+  //   requestRobot,
+  //   thetaBodyMQTT: setThetaBody,
+  //   thetaToolMQTT: setThetaTool,
+  //   robotIDRef,
+  //   MQTT_DEVICE_TOPIC, 
+  //   MQTT_CTRL_TOPIC, 
+  //   MQTT_ROBOT_STATE_TOPIC,
+  // });
 
   // Robot State Update Props
   const robotProps = React.useMemo(() => ({

@@ -1,4 +1,4 @@
-class q {
+class K {
   constructor(e, t, i, n) {
     this.g1 = e, this.a1 = t, this.v1 = i, this.a2 = n, this.constrained = !1, this.x0 = 0;
   }
@@ -46,7 +46,7 @@ class q {
     this.constrained = !1;
   }
 }
-function ie(s) {
+function ne(s) {
   const e = s.length;
   let t = 0, i = 0;
   for (; i < e; ) {
@@ -68,7 +68,7 @@ function ie(s) {
   }
   return t;
 }
-function ne(s, e, t) {
+function se(s, e, t) {
   const i = s.length;
   let n = t, r = 0;
   for (; r < i; ) {
@@ -90,15 +90,15 @@ function ne(s, e, t) {
     e[n++] = o & 63 | 128;
   }
 }
-const se = new TextEncoder(), oe = 50;
-function re(s, e, t) {
-  se.encodeInto(s, e.subarray(t));
-}
+const oe = new TextEncoder(), re = 50;
 function le(s, e, t) {
-  s.length > oe ? re(s, e, t) : ne(s, e, t);
+  oe.encodeInto(s, e.subarray(t));
+}
+function ae(s, e, t) {
+  s.length > re ? le(s, e, t) : se(s, e, t);
 }
 new TextDecoder();
-class k {
+class B {
   constructor(e, t) {
     this.type = e, this.data = t;
   }
@@ -114,7 +114,7 @@ class R extends Error {
     });
   }
 }
-function ae(s, e, t) {
+function ce(s, e, t) {
   const i = t / 4294967296, n = t;
   s.setUint32(e, i), s.setUint32(e + 4, n);
 }
@@ -122,14 +122,14 @@ function Y(s, e, t) {
   const i = Math.floor(t / 4294967296), n = t;
   s.setUint32(e, i), s.setUint32(e + 4, n);
 }
-function ce(s, e) {
+function fe(s, e) {
   const t = s.getInt32(e), i = s.getUint32(e + 4);
   return t * 4294967296 + i;
 }
-const fe = -1, he = 4294967296 - 1, ue = 17179869184 - 1;
-function de({ sec: s, nsec: e }) {
+const he = -1, de = 4294967296 - 1, ue = 17179869184 - 1;
+function we({ sec: s, nsec: e }) {
   if (s >= 0 && e >= 0 && s <= ue)
-    if (e === 0 && s <= he) {
+    if (e === 0 && s <= de) {
       const t = new Uint8Array(4);
       return new DataView(t.buffer).setUint32(0, s), t;
     } else {
@@ -141,21 +141,21 @@ function de({ sec: s, nsec: e }) {
     return i.setUint32(0, e), Y(i, 4, s), t;
   }
 }
-function we(s) {
+function ge(s) {
   const e = s.getTime(), t = Math.floor(e / 1e3), i = (e - t * 1e3) * 1e6, n = Math.floor(i / 1e9);
   return {
     sec: t + n,
     nsec: i - n * 1e9
   };
 }
-function ge(s) {
+function xe(s) {
   if (s instanceof Date) {
-    const e = we(s);
-    return de(e);
+    const e = ge(s);
+    return we(e);
   } else
     return null;
 }
-function xe(s) {
+function me(s) {
   const e = new DataView(s.buffer, s.byteOffset, s.byteLength);
   switch (s.byteLength) {
     case 4:
@@ -165,25 +165,25 @@ function xe(s) {
       return { sec: n, nsec: r };
     }
     case 12: {
-      const t = ce(e, 4), i = e.getUint32(0);
+      const t = fe(e, 4), i = e.getUint32(0);
       return { sec: t, nsec: i };
     }
     default:
       throw new R(`Unrecognized data size for timestamp (expected 4, 8, or 12): ${s.length}`);
   }
 }
-function me(s) {
-  const e = xe(s);
+function pe(s) {
+  const e = me(s);
   return new Date(e.sec * 1e3 + e.nsec / 1e6);
 }
-const pe = {
-  type: fe,
-  encode: ge,
-  decode: me
+const ye = {
+  type: he,
+  encode: xe,
+  decode: pe
 };
 class O {
   constructor() {
-    this.builtInEncoders = [], this.builtInDecoders = [], this.encoders = [], this.decoders = [], this.register(pe);
+    this.builtInEncoders = [], this.builtInDecoders = [], this.encoders = [], this.decoders = [], this.register(ye);
   }
   register({ type: e, encode: t, decode: i }) {
     if (e >= 0)
@@ -200,7 +200,7 @@ class O {
         const r = n(e, t);
         if (r != null) {
           const o = -1 - i;
-          return new k(o, r);
+          return new B(o, r);
         }
       }
     }
@@ -210,28 +210,28 @@ class O {
         const r = n(e, t);
         if (r != null) {
           const o = i;
-          return new k(o, r);
+          return new B(o, r);
         }
       }
     }
-    return e instanceof k ? e : null;
+    return e instanceof B ? e : null;
   }
   decode(e, t, i) {
     const n = t < 0 ? this.builtInDecoders[-1 - t] : this.decoders[t];
-    return n ? n(e, t, i) : new k(t, e);
+    return n ? n(e, t, i) : new B(t, e);
   }
 }
 O.defaultCodec = new O();
-function ye(s) {
+function Ue(s) {
   return s instanceof ArrayBuffer || typeof SharedArrayBuffer < "u" && s instanceof SharedArrayBuffer;
 }
-function Ue(s) {
-  return s instanceof Uint8Array ? s : ArrayBuffer.isView(s) ? new Uint8Array(s.buffer, s.byteOffset, s.byteLength) : ye(s) ? new Uint8Array(s) : Uint8Array.from(s);
+function Se(s) {
+  return s instanceof Uint8Array ? s : ArrayBuffer.isView(s) ? new Uint8Array(s.buffer, s.byteOffset, s.byteLength) : Ue(s) ? new Uint8Array(s) : Uint8Array.from(s);
 }
-const Se = 100, ve = 2048;
+const Ee = 100, ve = 2048;
 class $ {
   constructor(e) {
-    this.entered = !1, this.extensionCodec = e?.extensionCodec ?? O.defaultCodec, this.context = e?.context, this.useBigInt64 = e?.useBigInt64 ?? !1, this.maxDepth = e?.maxDepth ?? Se, this.initialBufferSize = e?.initialBufferSize ?? ve, this.sortKeys = e?.sortKeys ?? !1, this.forceFloat32 = e?.forceFloat32 ?? !1, this.ignoreUndefined = e?.ignoreUndefined ?? !1, this.forceIntegerToFloat = e?.forceIntegerToFloat ?? !1, this.pos = 0, this.view = new DataView(new ArrayBuffer(this.initialBufferSize)), this.bytes = new Uint8Array(this.view.buffer);
+    this.entered = !1, this.extensionCodec = e?.extensionCodec ?? O.defaultCodec, this.context = e?.context, this.useBigInt64 = e?.useBigInt64 ?? !1, this.maxDepth = e?.maxDepth ?? Ee, this.initialBufferSize = e?.initialBufferSize ?? ve, this.sortKeys = e?.sortKeys ?? !1, this.forceFloat32 = e?.forceFloat32 ?? !1, this.ignoreUndefined = e?.ignoreUndefined ?? !1, this.forceIntegerToFloat = e?.forceIntegerToFloat ?? !1, this.pos = 0, this.view = new DataView(new ArrayBuffer(this.initialBufferSize)), this.bytes = new Uint8Array(this.view.buffer);
   }
   clone() {
     return new $({
@@ -316,8 +316,8 @@ class $ {
       throw new Error(`Too long string: ${e} bytes in UTF-8`);
   }
   encodeString(e) {
-    const i = ie(e);
-    this.ensureBufferSizeToWrite(5 + i), this.writeStringHeader(i), le(e, this.bytes, this.pos), this.pos += i;
+    const i = ne(e);
+    this.ensureBufferSizeToWrite(5 + i), this.writeStringHeader(i), ae(e, this.bytes, this.pos), this.pos += i;
   }
   encodeObject(e, t) {
     const i = this.extensionCodec.tryToEncode(e, this.context);
@@ -342,7 +342,7 @@ class $ {
       this.writeU8(198), this.writeU32(t);
     else
       throw new Error(`Too large binary: ${t}`);
-    const i = Ue(e);
+    const i = Se(e);
     this.writeU8a(i);
   }
   encodeArray(e, t) {
@@ -439,7 +439,7 @@ class $ {
     this.ensureBufferSizeToWrite(8), this.view.setFloat64(this.pos, e), this.pos += 8;
   }
   writeU64(e) {
-    this.ensureBufferSizeToWrite(8), ae(this.view, this.pos, e), this.pos += 8;
+    this.ensureBufferSizeToWrite(8), ce(this.view, this.pos, e), this.pos += 8;
   }
   writeI64(e) {
     this.ensureBufferSizeToWrite(8), Y(this.view, this.pos, e), this.pos += 8;
@@ -451,7 +451,7 @@ class $ {
     this.ensureBufferSizeToWrite(8), this.view.setBigInt64(this.pos, e), this.pos += 8;
   }
 }
-function Ee(s, e) {
+function Q(s, e) {
   return new $(e).encodeSharedRef(s);
 }
 const p = Object.freeze({
@@ -466,30 +466,30 @@ const p = Object.freeze({
   moving: 3,
   rewinding: 4
 });
-let y = p.initializing, w = x.dormant;
+let y = p.initializing, g = x.dormant;
 console.log("Now intended to import ModuleFactory");
-const B = await import("/wasm/slrm_module.js"), Te = await import("/wasm/cd_module.js");
-console.log("ModuleFactory: ", B);
-console.log("ModuleFactory.default type:", typeof B.default);
-if (typeof B.default != "function")
-  throw console.error("ModuleFactory.default is not a function:", B.default), new Error("ModuleFactory.default is not a valid function");
-const u = await B.default();
-if (!u)
+const b = await import("/wasm/slrm_module.js"), Ne = await import("/wasm/cd_module.js");
+console.log("ModuleFactory: ", b);
+console.log("ModuleFactory.default type:", typeof b.default);
+if (typeof b.default != "function")
+  throw console.error("ModuleFactory.default is not a function:", b.default), new Error("ModuleFactory.default is not a valid function");
+const d = await b.default();
+if (!d)
   throw console.error("Failed to load SlrmModule"), new Error("SlrmModule could not be loaded");
-const M = await Te.default();
-if (!M)
+const T = await Ne.default();
+if (!T)
   throw console.error("Failed to load CdModule"), new Error("CdModule could not be loaded");
 const _ = {
-  [u.CmdVelGeneratorStatus.OK.value]: "OK",
-  [u.CmdVelGeneratorStatus.ERROR.value]: "ERROR",
-  [u.CmdVelGeneratorStatus.END.value]: "END",
-  [u.CmdVelGeneratorStatus.SINGULARITY.value]: "SINGULARITY",
-  [u.CmdVelGeneratorStatus.REWIND.value]: "REWIND"
-}, Q = 4, J = 0n / BigInt(Q);
-let V = null, G = 0n, L = null, N = null, a = null, F = null, v = null, T = null;
-const z = [], D = [];
-let d = null, U = null, C = null, Z = null, I = !1;
-function Ne(s) {
+  [d.CmdVelGeneratorStatus.OK.value]: "OK",
+  [d.CmdVelGeneratorStatus.ERROR.value]: "ERROR",
+  [d.CmdVelGeneratorStatus.END.value]: "END",
+  [d.CmdVelGeneratorStatus.SINGULARITY.value]: "SINGULARITY",
+  [d.CmdVelGeneratorStatus.REWIND.value]: "REWIND"
+}, Z = 4, q = 0n / BigInt(Z);
+let V = null, G = 0n, L = null, I = null, a = null, k = null, E = null, N = null;
+const F = [], D = [];
+let u = null, U = null, C = null, j = null, M = !1;
+function Te(s) {
   function e(t) {
     const i = new s.DoubleVector();
     for (let n = 0; n < t.length; ++n)
@@ -521,18 +521,18 @@ function Ie(s) {
     makeConvexShape: t
   };
 }
-let j = !1, m = null, P = null, W = [], A = null;
+let ee = !1, w = null, P = null, W = [], A = null;
 function H(s) {
-  A = s, m = new WebSocket(A), m.onopen = () => {
+  A = s, w = new WebSocket(A), w.onopen = () => {
     for (console.log("WebSocket connected"); W.length > 0; )
-      m.send(W.shift());
-  }, m.onclose = (e) => {
-    console.log("webSocket closed, will retry...", e.code, e.reason), Ve();
-  }, m.onerror = (e) => {
-    console.error("WebSocket error", e), m.close();
+      w.send(W.shift());
+  }, w.onclose = (e) => {
+    console.log("webSocket closed, will retry...", e.code, e.reason), Me();
+  }, w.onerror = (e) => {
+    console.error("WebSocket error", e), w.close();
   };
 }
-function Ve() {
+function Me() {
   P || (P = setTimeout(() => {
     P = null, A && (console.log("Reconnecting..."), H(A));
   }, 3e3));
@@ -557,11 +557,11 @@ function X(s, e) {
     ), f = o.origin.$.rpy ?? [NaN, NaN, NaN], h = t(
       s,
       Array.isArray(f) && f.length === 3 ? f : [NaN, NaN, NaN]
-    ), E = o.axis.$.xyz ?? [NaN, NaN, NaN], g = t(
+    ), v = o.axis.$.xyz ?? [NaN, NaN, NaN], m = t(
       s,
-      Array.isArray(E) && E.length === 3 ? E : [NaN, NaN, NaN]
-    ), S = new s.JointModelFlatStruct(g, c, h);
-    return g.delete(), c.delete(), h.delete(), S;
+      Array.isArray(v) && v.length === 3 ? v : [NaN, NaN, NaN]
+    ), S = new s.JointModelFlatStruct(m, c, h);
+    return m.delete(), c.delete(), h.delete(), S;
   });
   return { jointModelVector: i(s, n), jointModelsArray: n };
 }
@@ -570,35 +570,36 @@ self.onmessage = function(s) {
   const e = s.data;
   switch (e.type) {
     case "shutdown":
-      m && (m.close(), m = null), u && u.delete(), self.postMessage({ type: "shutdown_complete" }), j = !0;
+      w && (w.close(), w = null), d && d.delete(), self.postMessage({ type: "shutdown_complete" }), ee = !0;
       break;
     case "init":
       if (y === p.waitingRobotType) {
         y = p.generatorMaking, console.log("constructing CmdVelGenerator with :", e.filename);
-        const { makeDoubleVector: t } = Ne(u), { makeCdDoubleVector: i, makeConvexShape: n } = Ie(M);
-        C = t, Z = i, u.setJsLogLevel(3), fetch(e.filename).then((r) => r.json()).then((r) => {
+        const { makeDoubleVector: t } = Te(d), { makeCdDoubleVector: i, makeConvexShape: n } = Ie(T);
+        C = t, j = i, d.setJsLogLevel(2), fetch(e.filename).then((r) => r.json()).then((r) => {
           const o = r.filter((h) => h.$.type === "revolute"), {
             jointModelVector: l,
             jointModelsArray: c
-          } = X(u, o);
-          if (console.log("type of SlrmModule.CmdVelGen: " + typeof u.CmdVelGenerator), d = new u.CmdVelGenerator(l), console.log("type of jointModels is ", typeof jointModels), c.forEach((h) => h.delete()), l.delete(), d == null) {
-            console.error("generation of CmdVelGen instance failed"), d = null;
+          } = X(d, o);
+          if (console.log("type of SlrmModule.CmdVelGen: " + typeof d.CmdVelGenerator), u = new d.CmdVelGenerator(l), console.log("type of jointModels is ", typeof jointModels), c.forEach((h) => h.delete()), l.delete(), u == null) {
+            console.error("generation of CmdVelGen instance failed"), u = null;
             return;
           }
-          d != null && console.log("CmdVelGen instance created:", d), o.forEach((h) => {
-            z.push(h.limit.$.upper), D.push(h.limit.$.lower);
-          }), console.log("jointLimits: ", z, D), console.log("Status Definitions: OK:" + u.CmdVelGeneratorStatus.OK.value + ", ERROR:" + u.CmdVelGeneratorStatus.ERROR.value + ", END:" + u.CmdVelGeneratorStatus.END.value), d.setExactSolution(I), d.setLinearVelocityLimit(10), d.setAngularVelocityLimit(2 * Math.PI), d.setAngularGain(20), d.setLinearGain(20);
+          u != null && console.log("CmdVelGen instance created:", u), o.forEach((h) => {
+            F.push(h.limit.$.upper), D.push(h.limit.$.lower);
+          }), console.log("jointLimits: ", F, D), console.log("Status Definitions: OK:" + d.CmdVelGeneratorStatus.OK.value + ", ERROR:" + d.CmdVelGeneratorStatus.ERROR.value + ", END:" + d.CmdVelGeneratorStatus.END.value), u.setExactSolution(M), u.setLinearVelocityLimit(10), u.setAngularVelocityLimit(2 * Math.PI), u.setAngularGain(20), u.setLinearGain(20);
           const f = t(Array(o.length).fill(Math.PI * 2));
-          if (d.setJointVelocityLimit(f), f.delete(), e.linkShapes) {
+          if (u.setJointVelocityLimit(f), f.delete(), e.linkShapes) {
+            T.setJsLogLevel(2);
             const {
               jointModelVector: h,
-              jointModelsArray: E
-            } = X(M, o), g = i([0, 0, 0]), S = i([1, 0, 0, 0]);
-            U = new M.CollisionDetection(
+              jointModelsArray: v
+            } = X(T, o), m = i([0, 0, 0]), S = i([1, 0, 0, 0]);
+            U = new T.CollisionDetection(
               h,
-              g,
+              m,
               S
-            ), h.delete(), E.forEach((b) => b.delete()), g.delete(), S.delete();
+            ), h.delete(), v.forEach((z) => z.delete()), m.delete(), S.delete();
           }
           U && fetch(e.linkShapes).then((h) => h.json()).then((h) => {
             if (h.length !== o.length + 2) {
@@ -606,17 +607,16 @@ self.onmessage = function(s) {
               return;
             }
             console.log("linkShapes.length: ", h.length);
-            for (let g = 0; g < h.length; ++g) {
-              console.log(`リンク番号${g} のvector生成`);
-              const S = new M.ConvexShapeVector();
-              for (const b of h[g]) {
-                const K = n(b);
-                console.log("size of convex js: ", b.length), S.push_back(K), K.delete();
+            for (let m = 0; m < h.length; ++m) {
+              const S = new T.ConvexShapeVector();
+              for (const z of h[m]) {
+                const J = n(z);
+                S.push_back(J), J.delete();
               }
-              U.addLinkShape(g, S), S.delete();
+              U.addLinkShape(m, S), S.delete();
             }
             console.log("setting up of link shapes is finished"), U.infoLinkShapes();
-            const E = [
+            const v = [
               [0, 2],
               [0, 3],
               [0, 4],
@@ -637,8 +637,8 @@ self.onmessage = function(s) {
               [3, 7]
             ];
             U.clearTestPairs();
-            for (const g of E)
-              U.addTestPair(g[0], g[1]);
+            for (const m of v)
+              U.addTestPair(m[0], m[1]);
           }).catch((h) => {
             console.error("Error fetching or parsing SHAPE file:", h);
           }), e.bridgeUrl && (console.log("recieve bridge URL: ", e.bridgeUrl), H(e.bridgeUrl)), y = p.generatorReady, self.postMessage({ type: "generator_ready" });
@@ -648,78 +648,78 @@ self.onmessage = function(s) {
       }
       break;
     case "set_initial_joints":
-      (y === p.generatorReady || y === p.slrmReady) && e.joints && (a = new Float64Array(e.joints.length), a.set(e.joints), L = a.slice(), F = a.slice(), v = new Float64Array(a.length), console.log("Setting initial joints:" + a.map((t) => (t * 57.2958).toFixed(1)).join(", ")), (!N || a.length !== N.length) && (N = Array(a.length).fill(null).map((t, i) => i <= 1 ? new q(5, 1, 0.2, 0.02) : new q(5, 1, 1, 0.0625))), N.forEach((t, i) => {
+      (y === p.generatorReady || y === p.slrmReady) && e.joints && (a = new Float64Array(e.joints.length), a.set(e.joints), L = a.slice(), k = a.slice(), E = new Float64Array(a.length), console.log("Setting initial joints:" + a.map((t) => (t * 57.2958).toFixed(1)).join(", ")), (!I || a.length !== I.length) && (I = Array(a.length).fill(null).map((t, i) => i <= 1 ? new K(5, 1, 0.2, 0.02) : new K(5, 1, 1, 0.0625))), I.forEach((t, i) => {
         t.reset(), t.setX0(L[i]);
-      }), y = p.slrmReady, V = [], w = x.moving, console.log("Worker state changed to slrmReady"));
+      }), y = p.slrmReady, V = [], g = x.moving, console.log("Worker state changed to slrmReady"));
       break;
     case "destination":
-      y === p.slrmReady && e.endLinkPose && (V = [...e.endLinkPose], w = x.moving);
+      y === p.slrmReady && e.endLinkPose && (V = [...e.endLinkPose], g = x.moving);
       break;
     case "slow_rewind":
-      y === p.slrmReady && a && L && N && (e.slowRewind == !0 ? w = x.rewinding : w = x.converged);
+      y === p.slrmReady && a && L && I && (e.slowRewind == !0 ? g = x.rewinding : g = x.converged);
       break;
     case "set_end_effector_point":
       if (e.endEffectorPoint && C && e.endEffectorPoint.length === 3 && typeof e.endEffectorPoint[0] == "number" && typeof e.endEffectorPoint[1] == "number" && typeof e.endEffectorPoint[2] == "number") {
         console.debug("Setting end effector point: ", e.endEffectorPoint);
         const t = C(e.endEffectorPoint);
-        d.setEndEffectorPosition(t), t.delete();
-        const i = w;
-        w = x.moving, V = [], ee(0), w = i;
+        u.setEndEffectorPosition(t), t.delete();
+        const i = g;
+        g = x.moving, V = [], te(0), g = i;
       }
       break;
     case "set_exact_solution":
-      (y === p.generatorReady || y === p.slrmReady) && e.exactSolution !== void 0 && (e.exactSolution === !0 ? I = !0 : I = !1, d.setExactSolution(I), console.log("Exact solution for singularity set to: ", I));
+      (y === p.generatorReady || y === p.slrmReady) && e.exactSolution !== void 0 && (e.exactSolution === !0 ? M = !0 : M = !1, u.setExactSolution(M), console.log("Exact solution for singularity set to: ", M));
       break;
   }
 };
-function ee(s) {
+function te(s) {
   let e = null, t = null, i = null, n = null;
-  if (!(!d || !a)) {
-    if (y === p.slrmReady && (w === x.moving || w === x.rewinding)) {
-      if (w === x.rewinding) {
-        const c = N.map((f, h) => f.calcNext(a[h], v[h], s));
+  if (!(!u || !a)) {
+    if (y === p.slrmReady && (g === x.moving || g === x.rewinding)) {
+      if (g === x.rewinding) {
+        const c = I.map((f, h) => f.calcNext(a[h], E[h], s));
         for (let f = 0; f < a.length; f++)
-          a[f] = c[f].x, v[f] = c[f].v;
-        if (m) {
+          a[f] = c[f].x, E[f] = c[f].v;
+        if (w) {
           const f = {
             topic: "actuator1",
             javascriptStamp: Date.now(),
             header: {},
             position: [...a],
-            velocity: [...v],
+            velocity: [...E],
             normalized: []
-          }, h = Ee(f);
-          m.readyState === WebSocket.OPEN ? m.send(h) : A && (console.log("Not connected, queueing message"), W.push(f), (!m || m.readyState === WebSocket.CLOSED) && H(A));
+          }, h = Q(f);
+          w.readyState === WebSocket.OPEN ? w.send(h) : A && (console.log("Not connected, queueing message"), W.push(f), (!w || w.readyState === WebSocket.CLOSED) && H(A));
         }
         V = [];
-      } else w === x.converged && v.fill(0);
+      } else g === x.converged && E.fill(0);
       if (V === null)
         return;
-      const r = C(a), o = C(V), l = d.calcVelocityPQ(r, o);
-      if (r.delete(), o.delete(), w !== x.rewinding)
-        for (let c = 0; c < v.length; c++)
-          v[c] = l.joint_velocities.get(c);
-      if (l.joint_velocities.delete(), e = l.status, t = l.other, (!i || !n) && (i = new Float64Array(3), n = new Float64Array(4)), i[0] = l.position.get(0), i[1] = l.position.get(1), i[2] = l.position.get(2), n[0] = l.quaternion.get(0), n[1] = l.quaternion.get(1), n[2] = l.quaternion.get(2), n[3] = l.quaternion.get(3), l.position.delete(), l.quaternion.delete(), w === x.rewinding && l.status.value !== u.CmdVelGeneratorStatus.END.value && l.status.value !== u.CmdVelGeneratorStatus.OK.value && console.warn("CmdVelGenerator returned status other than END or OK during rewinding:", _[l.status.value]), w === x.moving)
+      const r = C(a), o = C(V), l = u.calcVelocityPQ(r, o);
+      if (r.delete(), o.delete(), g !== x.rewinding)
+        for (let c = 0; c < E.length; c++)
+          E[c] = l.joint_velocities.get(c);
+      if (l.joint_velocities.delete(), e = l.status, t = l.other, (!i || !n) && (i = new Float64Array(3), n = new Float64Array(4)), i[0] = l.position.get(0), i[1] = l.position.get(1), i[2] = l.position.get(2), n[0] = l.quaternion.get(0), n[1] = l.quaternion.get(1), n[2] = l.quaternion.get(2), n[3] = l.quaternion.get(3), l.position.delete(), l.quaternion.delete(), g === x.rewinding && l.status.value !== d.CmdVelGeneratorStatus.END.value && l.status.value !== d.CmdVelGeneratorStatus.OK.value && console.warn("CmdVelGenerator returned status other than END or OK during rewinding:", _[l.status.value]), g === x.moving)
         switch (l.status.value) {
-          case u.CmdVelGeneratorStatus.OK.value:
-            F.set(a);
+          case d.CmdVelGeneratorStatus.OK.value:
+            k.set(a);
             for (let c = 0; c < a.length; c++)
-              a[c] = a[c] + v[c] * s;
+              a[c] = a[c] + E[c] * s;
             if (U) {
-              const c = Z(a);
-              U.calcFk(c), c.delete(), U.testCollisionPairs().size() !== 0 && a.set(F);
+              const c = j(a);
+              U.calcFk(c), c.delete(), U.testCollisionPairs().size() !== 0 && a.set(k);
             }
             break;
-          case u.CmdVelGeneratorStatus.END.value:
-            w = x.converged;
+          case d.CmdVelGeneratorStatus.END.value:
+            g = x.converged;
             break;
-          case u.CmdVelGeneratorStatus.SINGULARITY.value:
+          case d.CmdVelGeneratorStatus.SINGULARITY.value:
             console.error("CmdVelGenerator returned SINGULARITY status");
             break;
-          case u.CmdVelGeneratorStatus.REWIND.value:
-            a.set(F);
+          case d.CmdVelGeneratorStatus.REWIND.value:
+            a.set(k);
             break;
-          case u.CmdVelGeneratorStatus.ERROR.value:
+          case d.CmdVelGeneratorStatus.ERROR.value:
             console.error("CmdVelGenerator returned ERROR status");
             break;
           default:
@@ -730,11 +730,11 @@ function ee(s) {
     if (e !== null && t !== null) {
       let r = Array(a.length).fill(0);
       for (let o = 0; o < a.length; o++)
-        a[o] > z[o] && (r[o] = 1, a[o] = z[o] - 1e-3), a[o] < D[o] && (r[o] = -1, a[o] = D[o] + 1e-3);
+        a[o] > F[o] && (r[o] = 1, a[o] = F[o] - 1e-3), a[o] < D[o] && (r[o] = -1, a[o] = D[o] + 1e-3);
       self.postMessage({ type: "joints", joints: [...a] }), self.postMessage({
         type: "status",
         status: _[e.value],
-        exact_solution: I,
+        exact_solution: M,
         condition_number: t.condition_number,
         manipulability: t.manipulability,
         sensitivity_scale: t.sensitivity_scale,
@@ -743,7 +743,7 @@ function ee(s) {
         type: "pose",
         position: i,
         quaternion: n
-      }), G++, J !== 0n && G % J === 0n && (T !== null && a !== null && T.length === a.length && Math.max(...T.map((o, l) => Math.abs(o - a[l]))) > 5e-3 && console.log(
+      }), G++, q !== 0n && G % q === 0n && (N !== null && a !== null && N.length === a.length && Math.max(...N.map((o, l) => Math.abs(o - a[l]))) > 5e-3 && console.log(
         "counter:",
         G,
         "status: ",
@@ -755,18 +755,31 @@ function ee(s) {
         " k:",
         t.sensitivity_scale.toFixed(3) + `
 limit flags: ` + r.join(", ")
-      ), T || (T = a.slice()), T.set(a));
+      ), N || (N = a.slice()), N.set(a));
     }
   }
 }
-function te(s = performance.now() - Q) {
+function ie(s = performance.now() - Z) {
   const e = performance.now(), t = e - s;
-  if (ee(t / 1e3), j === !0) {
+  if (te(t / 1e3), ee === !0) {
     self.postMessage({ type: "shutdown_complete" }), console.log("main loop was finished"), self.close();
     return;
   }
-  setTimeout(() => te(e), 0);
+  if (w) {
+    const n = performance.now() - e, r = Math.floor(n / 1e3), o = Math.floor((n - r * 1e3) * 1e6), l = {
+      topic: "timeRef",
+      javascriptStamp: Date.now(),
+      header: { frame_id: "none" },
+      time_ref: {
+        sec: r,
+        nanosec: o
+      },
+      source: "slrm_and_cd"
+    }, c = Q(l);
+    w.readyState === WebSocket.OPEN && w.send(c);
+  }
+  setTimeout(() => ie(e), 0);
 }
 y = p.waitingRobotType;
 self.postMessage({ type: "ready" });
-te();
+ie();
