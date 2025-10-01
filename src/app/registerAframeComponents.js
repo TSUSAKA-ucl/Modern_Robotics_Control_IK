@@ -4,12 +4,21 @@ import { three2worldMatGen, world2threeMatGen } from './constTransformGen';
 let registered = false;
 let lastUpdate = 0;
 
-let controllerCoord = new THREE.Object3D();
-let controllerPosition = new THREE.Vector3();
-let controllerOrientation = new THREE.Quaternion();
 let endLinkPosition = new THREE.Vector3();
 let endLinkOrientation = new THREE.Quaternion();
 let baseLinkPose = null;
+
+
+// express an isometry as [position Vector3, orientation Quaternion]
+function isometry_mul(a1, a2) {
+  return [a2[0].applyQuaternion(a1[1]).add(a1[0]),
+	  a1[1].clone().multiply(a2[1])];
+}
+function isometry_inv(a) {
+  let q_inv = a[1].clone().conjugate();
+  let p_inv = a[0].clone().applyQuaternion(q_inv).negate();
+  return [p_inv, q_inv];
+}
 
 export default function registerAframeComponents(options) {
   const three2worldMat = three2worldMatGen();
@@ -30,7 +39,7 @@ export default function registerAframeComponents(options) {
     // controller_object,
     props,
     onXRFrameMQTT,
-    workerLastJoints,
+    workerData,
     setThetaBody,
     endLinkPose,
     endLinkPoseUpdater,
@@ -42,21 +51,20 @@ export default function registerAframeComponents(options) {
     toolPointMover,
     controllerUpdater,
     topicBridgeWebSocketURL,
-    controllerOffset,
   } = options;
   
   AFRAME.registerComponent('robot-click', {
     init: function () {
       if (this.el.object3D?.matrixWorld) {
 	baseLinkPose = this.el.object3D.matrixWorld.clone();
-	baseLinkPoseInv.current = this.el.object3D.matrixWorld.clone().invert();
+	const pBase = this.el.object3D.getWorldPosition(new THREE.Vector3());
+	const qBase = this.el.object3D.getWorldQuaternion(new THREE.Quaternion());
+	baseLinkPoseInv.current = isometry_inv([pBase, qBase]);
 	console.log('00 baseLinkPose diagonal: ',
 		    baseLinkPose.elements[0].toFixed(3), ', ',
 		    baseLinkPose.elements[5].toFixed(3), ', ',
 		    baseLinkPose.elements[10].toFixed(3));
-	console.log('00 baseLinkPoseInv: ', baseLinkPoseInv.current.elements[0].toFixed(3), ', ',
-		    baseLinkPoseInv.current.elements[5].toFixed(3), ', ',
-		    baseLinkPoseInv.current.elements[10].toFixed(3));
+	console.log('00 baseLinkPoseInv: ', baseLinkPoseInv.current);
       }
       this.el.addEventListener('click', () => {
         robotChange();
@@ -68,7 +76,9 @@ export default function registerAframeComponents(options) {
 	if (this.el.object3D.matrixWorld) {
 	  if (!baseLinkPose.equals(this.el.object3D.matrixWorld)) {
 	    baseLinkPose = this.el.object3D.matrixWorld.clone();
-	    baseLinkPoseInv.current = this.el.object3D.matrixWorld.clone().invert();
+	    const pBase = this.el.object3D.getWorldPosition(new THREE.Vector3());
+	    const qBase = this.el.object3D.getWorldQuaternion(new THREE.Quaternion());
+	    baseLinkPoseInv.current = isometry_inv([pBase, qBase]);
 	  }
 	}
       }
@@ -94,7 +104,7 @@ export default function registerAframeComponents(options) {
       this.el.addEventListener('bbuttonup', () => set_button_b_on(false));
 
       this.el.addEventListener('thumbstickmoved', this.logThumbstick);
-      this.lastPose = new THREE.Matrix4();
+      this.lastPose = [new THREE.Vector3(), new THREE.Quaternion()];
       this.count = 0;
       this.detail_x_prev = 0;
       this.detail_y_prev = 0;
@@ -142,15 +152,39 @@ export default function registerAframeComponents(options) {
     tick: function () {
       const obj = this.el.object3D;
       if (!obj.matrixWorld) return; // not yet initialized
-      controllerCoord = obj;
+      let controllerPosition = new THREE.Vector3();
+      let controllerOrientation = new THREE.Quaternion();
       obj.getWorldPosition(controllerPosition);
       obj.getWorldQuaternion(controllerOrientation);
-      const pose = obj.matrixWorld;
+      const sharedData = this.el.sceneEl.systems['sharedData'];
+      const newControllerPose = [controllerPosition, controllerOrientation];
+      if (sharedData.controllerPositionOffset &&
+	  sharedData.controllerOrientationOffset) {
+	const worldCameraQuaternion = new THREE.Quaternion();
+	this.el.sceneEl.camera.getWorldQuaternion(worldCameraQuaternion);
+	const worldOffset = sharedData.controllerPositionOffset.clone()
+	      .applyQuaternion(worldCameraQuaternion);
+	newControllerPose[0] = controllerPosition.clone().add(worldOffset);
+	//
+	const cameraWorldQuaternion = worldCameraQuaternion.clone().conjugate();
+	worldCameraQuaternion.multiply(sharedData.controllerOrientationOffset)
+	  .multiply(cameraWorldQuaternion);
+	newControllerPose[1] = controllerOrientation.clone().
+	  multiply(worldCameraQuaternion);
+      }
+      // copy to sharedData for use in axes1 components
+      sharedData.controllerPosition = newControllerPose[0];
+      sharedData.controllerOrientation = newControllerPose[1];
+      // 
+      const controllerBase = isometry_mul(baseLinkPoseInv.current,
+					  newControllerPose);
+      const controllerBaseMat = new THREE.Matrix4();
+      controllerBaseMat.compose(controllerBase[0],
+				controllerBase[1],
+				new THREE.Vector3(1,1,1));
+      set_controller_object(controllerBaseMat);
       if (this._my_init_flag) {
 	// if (!pose.equals(this.lastPose)) {
-	const controllerBase = baseLinkPoseInv.current.clone().multiply(pose)
-	      .multiply(controllerOffset.current)
-        set_controller_object(controllerBase);
 	  //
 	  // // **** debugging output ****
 	  // const position = new THREE.Vector3();
@@ -162,13 +196,10 @@ export default function registerAframeComponents(options) {
 	  // controllerUpdater();
 	//}
       } else {
-	const controllerBase = baseLinkPoseInv.current.clone().multiply(pose)
-	      .multiply(controllerOffset.current)
-	set_controller_object(controllerBase);
 	this._my_init_flag = true;
       }
       ++this.count;
-      this.lastPose.copy(pose);
+      this.lastPose = newControllerPose;
     }
   });
 
@@ -241,21 +272,37 @@ export default function registerAframeComponents(options) {
       });
     },
     tick: function (time, timeDelta) {
-      if (workerLastJoints.current) {
+      if (workerData.current.joints) {
 	if (time - lastUpdate > 16) {
 	  lastUpdate = time;
-	  setThetaBody(workerLastJoints.current);
+	  setThetaBody(workerData.current.joints);
 	}
 	console.debug('workerLastJoints: '
-		      + workerLastJoints.current[0].toFixed(3) + ', '
-		      + workerLastJoints.current[1].toFixed(3) + ', '
-		      + workerLastJoints.current[2].toFixed(3));
+		      + workerData.current.joints[0].toFixed(3) + ', '
+		      + workerData.current.joints[1].toFixed(3) + ', '
+		      + workerData.current.joints[2].toFixed(3));
       }
     }
   });
 
+  // ****************
+  // 'axes1' represents the modified pose of the right-hand controller
+  // ****************
   AFRAME.registerComponent('axes1', {
     init() {
+      // this webSocket is used to receive data for modifying the vr-controller,
+      // so its event handlers are defined in this axes1 component.
+      // We recomment not putting this handler definition in the vr-controller component because
+      // it tends to be LONG and tis INITIALIZATION BEHAVIOR is DIFFICULT to control.
+      //
+      const sharedPosition = new THREE.Vector3(0, 0, 0);
+      const sharedOrientation = new THREE.Quaternion(0, 0, 0, 1);
+      const sharedJoyAxes = new Array(6).fill(0);
+      const sharedJoyButtons = new Array(17).fill(0);
+      this.sharedPosition = sharedPosition;
+      this.sharedOrientation = sharedOrientation;
+      this.sharedJoyAxes = sharedJoyAxes;
+      this.sharedJoyButtons = sharedJoyButtons;
       this.usePose = true;
       this.socket = new WebSocket(topicBridgeWebSocketURL);
       this.socket.binaryType = "arraybuffer";
@@ -266,8 +313,8 @@ export default function registerAframeComponents(options) {
 	console.log('webSocket closed. code,reason: ', e.code,e.reason);
       };
       this.socket.onerror = (err) => {
-	console.error('WebSocket error', err);
-	socket.close();	// the socket must be closed to reconnect
+	console.warn('WebSocket encountered error: ', err.message, 'Closing socket');
+	this.socket.close();	// the socket must be closed to reconnect
       };
       if (this.usePose) {
 	this.socket.onmessage = function(event) {
@@ -275,22 +322,29 @@ export default function registerAframeComponents(options) {
 	  // event.data は ArrayBufferで来るはずだが Blobで来たら変換する
 	  let arrayBufferData = event.data;
 	  if (event.data instanceof Blob) {
-	    // Blob なら ArrayBuffer に変換(非同期メソッド) ほとんどの場合ここは通らないので、awaitで対処
+	    // Blob なら ArrayBuffer に変換(非同期メソッド) ほとんどの場合ここは通らないので対応しない
 	    // arrayBufferData = await event.data.arrayBuffer();
 	    console.error('WebSocket data is Blob, not ArrayBuffer');
 	  }
 	  const recvData = MessagePack.decode(new Uint8Array(arrayBufferData));
-	  if (recvData.topic === 'input_pose') {
+	  switch (recvData.topic) {
+	  case 'input_pose':
 	    // console.debug('recvData: ', recvData);
 	    this.pose = true;
-	    this.pos = new THREE.Vector3(recvData.pose.position.x,
-					 recvData.pose.position.y,
-					 recvData.pose.position.z);
+	    const pos = new THREE.Vector3(recvData.pose.position.x,
+					  recvData.pose.position.y,
+					  recvData.pose.position.z);
 	    const ori = new THREE.Quaternion(recvData.pose.orientation.x,
 					     recvData.pose.orientation.y,
 					     recvData.pose.orientation.z,
 					     recvData.pose.orientation.w);
-	    controllerOffset.current.compose(this.pos, ori, new THREE.Vector3(1,1,1));
+	    sharedPosition.copy(pos);
+	    sharedOrientation.copy(ori);
+	    break;
+	  case 'joy':
+	    sharedJoyAxes.splice(0, sharedJoyAxes.length, recvData.axes);
+	    sharedJoyButtons.splice(0, sharedJoyButtons.length, recvData.buttons);
+	    break;
 	  }
 	};
       }
@@ -299,11 +353,24 @@ export default function registerAframeComponents(options) {
       this.socket.close();
     },
     tick() {
-      const controller_T_end =
-	    controllerOrientation.clone().conjugate().multiply(endLinkOrientation);
-      this.el.object3D.quaternion.copy(controller_T_end);
-      if (this.pose) {
-	this.el.object3D.position.copy(this.pos);
+      const sharedData = this.el.sceneEl.systems['sharedData'];
+      if (!sharedData.controllerPositionOffset)
+	sharedData.controllerPositionOffset = new THREE.Vector3(0, 0, 0);
+      if (!sharedData.controllerOrientationOffset)
+	sharedData.controllerOrientationOffset = new THREE.Quaternion(0, 0, 0, 1);
+      sharedData.controllerPositionOffset.copy(this.sharedPosition);
+      sharedData.controllerOrientationOffset.copy(this.sharedOrientation);
+      sharedData.joyAxes = this.sharedJoyAxes;
+      sharedData.joyButtons = this.sharedJoyButtons;
+      //
+      // Set the modified controller position and orientation to the axes1 entity
+      // modified position and orientation are
+      // calculated in vr-controller-right component
+      if (sharedData.controllerPosition) {
+	this.el.object3D.position.copy(sharedData.controllerPosition);
+      }
+      if (sharedData.controllerOrientation) {
+	this.el.object3D.quaternion.copy(sharedData.controllerOrientation);
       }
     }
   });

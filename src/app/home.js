@@ -7,6 +7,13 @@ import registerAframeComponents from './registerAframeComponents';
 import useMqtt from './useMqtt';
 import { mqttclient,idtopic, publishMQTT, codeType } from '../lib/MetaworkMQTT'
 import { three2worldMatGen, world2threeMatGen } from './constTransformGen';
+import IkWorkerManager,{ToolPointMover} from './IkWorkerManager'; 
+
+AFRAME.registerSystem('sharedData', {
+  init: function () {
+    this.sharedData = { };
+  }
+});
 
 // const mr = require('../modern_robotics/modern_robotics_core.js');
 // // const RobotKinematics = require('../modern_robotics/modern_robotics_Kinematics.js');
@@ -100,33 +107,21 @@ export default function DynamicHome(props) {
       return controllerMode[modeNumber];
     };
   });
-  // *** controller offset
+  // *** controller offset subscribe
   const bridgeProtocol = location.protocol==='https:' ? 'wss:':'ws:';
   const bridgePort = 9090;
   const topicBridgeWebSocketURL = `${bridgeProtocol}//${location.hostname}:${bridgePort}`;
-  const controllerOffset = React.useRef(new THREE.Matrix4()); // identity matrix
-  // *** function that sets the end effector point in the worker thread
-  const [toolPointMover] = React.useState(() => {
-    let toolPoint = new THREE.Vector3(0, 0, 0);
-    return (delta) => {
-      if (typeof delta === 'number') {
-	toolPoint.z += delta;
-	workerRef.current
-	  .postMessage({type: 'set_end_effector_point',
-			endEffectorPoint: toolPoint.toArray()});
-	console.debug("Tool Point moved to: ", toolPoint.x.toFixed(3),
-		      toolPoint.y.toFixed(3), toolPoint.z.toFixed(3));
-      } else if (delta === null) {
-	// reset
-	toolPoint.x = 0; toolPoint.y = 0; toolPoint.z = 0;
-      }
-      return toolPoint;
-    };});
+
+
+
   // *** updater of the start poses of the end link and controller
   const [controllerUpdate, setControllerUpdate] = React.useState(0);
   const [controllerUpdater] = React.useState(() => {
     return () => { setControllerUpdate(controllerUpdate + 1); };
   });
+
+
+
   // ****************
   // Animation loop
   const loop = (timestamp)=>{
@@ -164,56 +159,24 @@ export default function DynamicHome(props) {
     setUpdateRobot(updateRobot+1);
   }, [robot_model]);
 
-
   // ****************
-  // Worker thread generation
+  // Worker thread management
   const workerRef = React.useRef(null);
-  const workerLastJoints = React.useRef(null);
-  const workerLastStatus = React.useRef(null);
-  const workerLastPose = React.useRef(null);
-  // const useWorkerRef = React.useRef(true); // Flag to indicate if the worker is ready
+  const workerData = React.useRef({ joints: null, status: null, pose: null });
+  IkWorkerManager({robotName: robot_model,
+                   initialJoints: theta_body_initial_map[robot_model] ||
+                   [0, 0, 0, 0, 0, 0],
+		   workerRef,
+		   workerData,
+		   topicBridgeWebSocketURL});
+  // *** Tool Point Mover generation
+  const toolPointMoverRef = React.useRef(new ToolPointMover(workerRef));
+  const [toolPointMover] = React.useState(() => {
+    return (delta) => toolPointMoverRef.current.delta(delta);
+  });
+
+  // *** set DSP message and color
   React.useEffect(() => {
-    if (workerRef.current === null) {
-      console.log("******** Creating new worker ********");
-      workerRef.current = new Worker('/worker.js', { type: 'module'});
-      console.log("workerRef.current: ", workerRef.current);
-      workerRef.current.onmessage = (event) => {
-	switch (event.data.type) {
-	case 'ready':
-	  workerRef.current
-	    .postMessage({ type: 'init',
-			   filename: robot_model +'/'+'urdf.json',
-			   linkShapes: robot_model +'/'+'shapes.json',
-			   bridgeUrl: topicBridgeWebSocketURL
-			 });
-	  break;
-	case 'generator_ready':
-	  workerRef.current
-	    .postMessage({ type: 'set_exact_solution',
-			   exactSolution: false });
-	  workerRef.current
-	    .postMessage({ type: 'set_initial_joints',
-			   // joints: theta_body});
-			   joints: theta_body_initial_map[robot_model]
-			 });
-	  break;
-	case 'joints':
-	  if (event.data.joints) {
-	    console.debug("Worker joint message:",
-			  event.data.joints.map(x => x.toFixed(3)).join(', '));
-	    // Always skip to the latest data
-	    workerLastJoints.current = event.data.joints;
-	  }
-	  break;
-	case 'status':
-	  workerLastStatus.current = event.data;
-	  break;
-	case 'pose':
-	  workerLastPose.current = event.data;
-	  break;
-	}
-      };
-    }
     // **** set status text to "dsp_message" ****
     const intervalId = setInterval(() => {
       const controllerMode = controllerModeChange(0); // Get current controller mode
@@ -221,37 +184,32 @@ export default function DynamicHome(props) {
       switch (controllerMode) {
       case 'Normal':
 	messageText
-	  .push('status: ' + workerLastStatus.current?.status +
+	  .push('status: ' + workerData.current.status?.status +
 		'  magnification: ' + controllerMagnificationUsed.current.toFixed(2),
-		'cond:' + workerLastStatus.current?.condition_number.toFixed(2) +
-		'  manip:'  + workerLastStatus.current?.manipulability.toFixed(3) +
-		'  k:'  + workerLastStatus.current?.sensitivity_scale.toFixed(3),
+		'cond:' + workerData.current.status?.condition_number.toFixed(2) +
+		'  manip:'  + workerData.current.status?.manipulability.toFixed(3) +
+		'  k:'  + workerData.current.status?.sensitivity_scale.toFixed(3),
 		'  limit flags: ' +
-		(workerLastStatus.current?.limit_flag || []).join(', '));
+		(workerData.current.status?.limit_flag || []).join(', '));
 	break;
       case 'ToolPoint':
-	messageText.push('Tool Point: ' + toolPointMover(0).toArray().
+	messageText.push('Tool Point: ' +
+                         toolPointMoverRef.current.get().
 			 map(x => x.toFixed(3)).join(', '));
 	break;
       } 
       set_dsp_message(messageText.join('\n'));
-      if (workerLastStatus.current?.sensitivity_scale > 0.001) {
+      if (workerData.current.status?.sensitivity_scale > 0.001) {
 	dsp_color.current = 'orange'; // Orange color for singularity warning
-      } else if (workerLastStatus.current?.limit_flag.map(x=>x*x).reduce((sum,x)=>sum+x,0) > 0) {
+      } else if (workerData.current.status?.limit_flag.map(x=>x*x).reduce((sum,x)=>sum+x,0) > 0) {
 	dsp_color.current = red_color; // Red color for touching the joint limits
       } else {
 	dsp_color.current = green_color; // Green color for normal status
       }
     }, 200); // Update every 200ms
-    //
-    return () => {
-      if (workerRef.current) {
-	workerRef.current.terminate();
-	workerRef.current = null;
-      }
-      clearInterval(intervalId);
-    };
-  }, [updateRobot]);
+    return () => clearInterval(intervalId);
+  }, []); // [updateRobot]);
+
 
   // ****************
   // Change Robot
@@ -270,9 +228,9 @@ export default function DynamicHome(props) {
   // *** function that set endLinkPose from worker thread
   const [endLinkPoseUpdater] = React.useState(()=>{
     return ()=>{
-      if (workerLastPose.current) {
-	const ppw = workerLastPose.current.position;
-	const qqw = workerLastPose.current.quaternion;
+      if (workerData.current.pose) {
+	const ppw = workerData.current.pose.position;
+	const qqw = workerData.current.pose.quaternion;
 	if (ppw && qqw) {
 	  const ppt = new THREE.Vector3(ppw[0], ppw[1], ppw[2]);
 	  const qqt = new THREE.Quaternion(qqw[1], qqw[2], qqw[3], qqw[0]);
@@ -336,16 +294,14 @@ export default function DynamicHome(props) {
       console.debug("matrixDiff: ", matrixDiff.elements[12].toFixed(3),
       		    matrixDiff.elements[13].toFixed(3),
       		    matrixDiff.elements[14].toFixed(3));
-      console.debug("newEndLinkPose: ", newEndLinkPose.elements[12].toFixed(3),
+      console.debug("newEndLinkPose: ",
+		    newEndLinkPose.elements[12].toFixed(3),
       		    newEndLinkPose.elements[13].toFixed(3),
       		    newEndLinkPose.elements[14].toFixed(3));
       // **** send to worker thread ****
-      workerRef.current.postMessage({ type: 'destination',
-				      endLinkPose: newEndLinkPose.elements });
-      // KinematicsControl(newEndLinkPose);
-      // if (workerLastJoints.current) {
-      // 	setThetaBody(workerLastJoints.current);
-      // }
+      workerRef.current.
+	postMessage({ type: 'destination',
+		      endLinkPose: newEndLinkPose.elements });
     }
     // ** update the controller and end link pose at the trigger_on change
     console.debug("controllerUpdate: ", controllerUpdate);
@@ -362,7 +318,7 @@ export default function DynamicHome(props) {
       if (updateStartPose || endLinkPoseStart.current === null){
 	// do update start pose of end link
 	console.debug("update start pose of end link");
-	if (workerLastPose.current) {
+	if (workerData.current.pose) {
           endLinkPoseStart.current = endLinkPose.current.clone();
           // endLinkPoseStart.current = three2worldMat.clone()
 	  //   .multiply(endLinkPose.current);
@@ -451,7 +407,7 @@ export default function DynamicHome(props) {
       // Euler_order,
       props,
       onXRFrameMQTT,
-      workerLastJoints,
+      workerData,
       setThetaBody,
       endLinkPose,
       endLinkPoseUpdater,
@@ -463,7 +419,6 @@ export default function DynamicHome(props) {
       toolPointMover,
       controllerUpdater,
       topicBridgeWebSocketURL,
-      controllerOffset,
     });
     // set rendered state after a short delay to ensure the scene is ready
     // setTimeout(() => set_rendered(true), 16.5);
@@ -556,10 +511,6 @@ export default function DynamicHome(props) {
       c_deg_z={c_deg_z}
       viewer={props.viewer}
       monitor={props.monitor}
-      // position_ee={pose_ee_Three.position}
-      // euler_ee={pose_ee_Three.euler}
-      // vr_controller_pos={vr_controller_pos}
-      // vr_controller_euler={vr_controller_euler}
     />
   );
 }
