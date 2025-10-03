@@ -163,12 +163,14 @@ export default function DynamicHome(props) {
   // Worker thread management
   const workerRef = React.useRef(null);
   const workerData = React.useRef({ joints: null, status: null, pose: null });
-  IkWorkerManager({robotName: robot_model,
-                   initialJoints: theta_body_initial_map[robot_model] ||
-                   [0, 0, 0, 0, 0, 0],
-		   workerRef,
-		   workerData,
-		   topicBridgeWebSocketURL});
+  React.useEffect(() => 
+    IkWorkerManager({robotName: robot_model,
+                     initialJoints: theta_body_initial_map[robot_model] ||
+                     [0, 0, 0, 0, 0, 0],
+		     workerRef,
+		     workerData,
+		     topicBridgeWebSocketURL}),
+    []);
   // *** Tool Point Mover generation
   const toolPointMoverRef = React.useRef(new ToolPointMover(workerRef));
   const [toolPointMover] = React.useState(() => {
