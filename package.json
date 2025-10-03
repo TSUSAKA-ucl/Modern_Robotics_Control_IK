@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:worker": "vite build --config vite.config.js"
+    "build:worker": "vite build --config vite.config.js",
+    "postinstall": "node node_modules/@ucl-nuee/ik-cd-worker/scripts/copy-wasm.js"
   },
   "dependencies": {
     "aframe": "1.6",
@@ -19,7 +20,8 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "ts-morph": "^26.0.0",
-    "@msgpack/msgpack": "^3.1.2"
+    "@msgpack/msgpack": "^3.1.2",
+    "@ucl-nuee/ik-cd-worker": "https://github.com/TSUSAKA-ucl/ik-cd-worker/releases/download/ver.0.2/ucl-nuee-ik-cd-worker-0.2.3.tgz"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

@@ -1,0 +1,5 @@
+ik_cd_worker.js
+wasm/cd_module.js
+wasm/cd_module.wasm
+wasm/slrm_module.js
+wasm/slrm_module.wasm

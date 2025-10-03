@@ -7,7 +7,7 @@ import registerAframeComponents from './registerAframeComponents';
 import useMqtt from './useMqtt';
 import { mqttclient,idtopic, publishMQTT, codeType } from '../lib/MetaworkMQTT'
 import { three2worldMatGen, world2threeMatGen } from './constTransformGen';
-import IkWorkerManager,{ToolPointMover} from './IkWorkerManager'; 
+import IkWorkerManager,{ToolPointMover} from '@ucl-nuee/ik-cd-worker';
 
 AFRAME.registerSystem('sharedData', {
   init: function () {
